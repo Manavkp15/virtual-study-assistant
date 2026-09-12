@@ -1,0 +1,21 @@
+{
+  "title": "સ્માર્ટ ભૂલ પુસ્તિકા",
+  "subtitle": "ટેસ્ટમાં થયેલી ભૂલોનું ટ્રેકિંગ, વિશ્લેષણ અને સુધારો",
+  "weakTopics": "નબળા વિષયો",
+  "strongTopics": "મજબૂત વિષયો",
+  "critical": "અત્યંત મહત્વપૂર્ણ",
+  "needsImprovement": "સુધારાની જરૂર છે",
+  "repeatedMistakes": "વારંવાર થતી ભૂલો",
+  "recommendedRevision": "ભલામણ કરેલ પુનરાવર્તન",
+  "priorityScore": "પ્રાથમિકતા સ્કોર",
+  "reason": "કારણ",
+  "timesIncorrect": "વખત ખોટો જવાબ",
+  "resolved": "ઉકેલાયેલ",
+  "pending": "બાકી ભૂલ",
+  "yourAnswer": "તમારો પસંદ કરેલ જવાબ",
+  "correctAnswer": "સાચો ઉકેલ",
+  "solutionExplanation": "ઉકેલની સમજૂતી",
+  "markResolved": "ઉકેલાયેલ તરીકે ચિહ્નિત કરો",
+  "noMistakes": "કોઈ ભૂલો નોંધાયેલી નથી! ઉત્તમ કાર્ય ચાલુ રાખો.",
+  "allMistakesResolved": "બધી નોંધાયેલી ભૂલોની સમીક્ષા કરી ઉકેલી લેવામાં આવી છે."
+}

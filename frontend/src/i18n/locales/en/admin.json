@@ -1,0 +1,73 @@
+{
+  "title": "Teacher & Admin Control Center",
+  "subtitle": "Curriculum management, live telemetry, and student progress oversight",
+  "tabs": {
+    "overview": "Overview & Telemetry",
+    "subjects": "Subjects & Chapters",
+    "questions": "Question Bank",
+    "tests": "Assessments",
+    "students": "Student Roster"
+  },
+  "metrics": {
+    "totalStudents": "Total Students",
+    "activeSubjects": "Active Subjects",
+    "bankQuestions": "Bank Questions",
+    "activeTests": "Configured Tests",
+    "totalAttempts": "Total Attempts"
+  },
+  "subjects": {
+    "addSubject": "Add New Subject",
+    "editSubject": "Edit Subject",
+    "subjectNameEn": "Subject Name (English)",
+    "subjectNameGu": "Subject Name (Gujarati)",
+    "code": "Subject Code",
+    "standard": "Standard",
+    "descriptionEn": "Description (English)",
+    "descriptionGu": "Description (Gujarati)",
+    "chaptersCount": "Chapters",
+    "topicsCount": "Topics",
+    "actions": "Actions"
+  },
+  "questions": {
+    "addQuestion": "Add New Question",
+    "editQuestion": "Edit Question",
+    "subject": "Subject",
+    "topic": "Topic",
+    "difficulty": "Difficulty",
+    "questionEn": "Question Text (English)",
+    "questionGu": "Question Text (Gujarati)",
+    "explanationEn": "Explanation (English)",
+    "explanationGu": "Explanation (Gujarati)",
+    "options": "Options",
+    "optionEn": "Option (English)",
+    "optionGu": "Option (Gujarati)",
+    "correct": "Correct",
+    "addOption": "Add Option"
+  },
+  "tests": {
+    "createTest": "Create New Test",
+    "testTitleEn": "Test Title (English)",
+    "testTitleGu": "Test Title (Gujarati)",
+    "testDescEn": "Test Description (English)",
+    "testDescGu": "Test Description (Gujarati)",
+    "durationMinutes": "Duration (Minutes)",
+    "selectQuestions": "Select Questions",
+    "assignedQuestions": "Assigned Questions"
+  },
+  "roster": {
+    "studentName": "Student Name",
+    "email": "Email",
+    "standard": "Standard",
+    "streak": "Streak",
+    "testsAttempted": "Tests Attempted",
+    "joinedDate": "Joined Date"
+  },
+  "recentAttempts": {
+    "title": "Recent Student Test Attempts",
+    "student": "Student",
+    "test": "Test",
+    "subject": "Subject",
+    "score": "Score",
+    "date": "Date"
+  }
+}

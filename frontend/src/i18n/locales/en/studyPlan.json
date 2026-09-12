@@ -1,0 +1,48 @@
+{
+  "myStudyPlan": "My Study Plan",
+  "todaysPlan": "Today's Plan",
+  "weeklyPlan": "Weekly Plan",
+  "monthlyPlan": "Monthly Plan",
+  "priority": "Priority",
+  "critical": "Critical",
+  "high": "High",
+  "medium": "Medium",
+  "low": "Low",
+  "completed": "Completed",
+  "pending": "Pending",
+  "missed": "Missed",
+  "studyTime": "Study Time",
+  "examDate": "Exam Date",
+  "daysRemaining": "Days Remaining",
+  "targetPercentage": "Target Percentage",
+  "generatePlan": "Generate New 7-Day Plan",
+  "regenerate": "Regenerate Study Plan",
+  "dailyStudyTime": "Daily Study Time",
+  "hoursPerDay": "Hours/Day",
+  "day": "Day",
+  "today": "Today",
+  "overallProgress": "Overall Weekly Progress",
+  "phases": {
+    "learning": "Learning",
+    "practice": "Practice",
+    "weaknessRemoval": "Weakness Removal",
+    "finalRevision": "Final Revision",
+    "mockTest": "Mock Test"
+  },
+  "phaseDescriptions": {
+    "learning": "Understand the concepts and complete the required learning material.",
+    "practice": "Strengthen your understanding by solving practice questions.",
+    "weaknessRemoval": "Focus on topics where your performance has been low.",
+    "finalRevision": "Review important concepts, formulas, and notes before exams.",
+    "mockTest": "Take a complete exam-style test to assess your overall preparation."
+  },
+  "activities": {
+    "conceptReview": "📖 Concept & Theory Review",
+    "mcqPractice": "✍️ MCQ Practice Drill",
+    "mistakeRevision": "🔍 Mistake Analysis & Fix",
+    "formulaDrill": "🧪 Formula & Flashcards",
+    "mockQuiz": "🎯 Topic Mock Assessment"
+  },
+  "taskMinutes": "min",
+  "noTasksToday": "No tasks scheduled for today. Click 'Generate New 7-Day Plan' to create one!"
+}

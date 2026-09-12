@@ -1,0 +1,74 @@
+{
+  "appName": "Virtual Study Assistant",
+  "tagline": "Virtual Study Platform",
+  "studentMode": "STUDENT Mode",
+  "teacherMode": "TEACHER Mode",
+  "assignedGrade": "Assigned Grade",
+  "streak": "Day Streak",
+  "notifications": "Notifications",
+  "markAllRead": "Mark all read",
+  "noNotifications": "No new notifications",
+  "welcomeBack": "Welcome back",
+  "save": "Save",
+  "saveChanges": "Save Changes",
+  "saving": "Saving...",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "search": "Search...",
+  "filter": "Filter",
+  "all": "All",
+  "active": "Active",
+  "status": "Status",
+  "actions": "Actions",
+  "loading": "Loading...",
+  "error": "An error occurred",
+  "success": "Operation successful",
+  "minutes": "minutes",
+  "mins": "mins",
+  "hours": "hours",
+  "questions": "questions",
+  "nav": {
+    "dashboard": "Student Dashboard",
+    "subjects": "My Subjects",
+    "studyPlan": "Study Plan",
+    "tests": "Tests & Practice",
+    "mistakeBook": "Mistake Book",
+    "analytics": "Analytics",
+    "aiAssistant": "AI Study Assistant",
+    "profile": "Profile",
+    "teacherDashboard": "Teacher Dashboard",
+    "logout": "Log Out"
+  },
+  "roles": {
+    "student": "Student",
+    "teacher": "Teacher / Admin"
+  },
+  "standards": {
+    "standard6": "Standard 6",
+    "standard7": "Standard 7",
+    "standard8": "Standard 8"
+  },
+  "difficulty": {
+    "EASY": "Easy",
+    "MEDIUM": "Medium",
+    "HARD": "Hard",
+    "BASIC": "Basic",
+    "ADVANCED": "Advanced",
+    "CHALLENGE": "Challenge",
+    "REVISION": "Revision"
+  },
+  "priority": {
+    "CRITICAL": "Critical",
+    "HIGH": "High",
+    "MEDIUM": "Medium",
+    "LOW": "Low"
+  },
+  "statusText": {
+    "EXCELLENT": "Excellent",
+    "STRONG": "Strong",
+    "AVERAGE": "Average",
+    "NEEDS_IMPROVEMENT": "Needs Improvement",
+    "CRITICAL": "Critical Attention"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "title": "Smart Mistake Book",
+  "subtitle": "Track, analyze, and clear repeated test errors to build mastery",
+  "weakTopics": "Weak Topics",
+  "strongTopics": "Strong Topics",
+  "critical": "Critical",
+  "needsImprovement": "Needs Improvement",
+  "repeatedMistakes": "Repeated Mistakes",
+  "recommendedRevision": "Recommended Revision",
+  "priorityScore": "Priority Score",
+  "reason": "Reason",
+  "timesIncorrect": "Times Incorrect",
+  "resolved": "Resolved",
+  "pending": "Pending Error",
+  "yourAnswer": "Your Selected Answer",
+  "correctAnswer": "Correct Solution",
+  "solutionExplanation": "Solution Explanation",
+  "markResolved": "Mark as Resolved",
+  "noMistakes": "No mistakes recorded! Keep up the excellent work.",
+  "allMistakesResolved": "All recorded mistakes have been reviewed and resolved."
+}

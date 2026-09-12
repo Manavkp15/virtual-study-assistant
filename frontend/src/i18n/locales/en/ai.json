@@ -1,0 +1,15 @@
+{
+  "title": "AI Contextual Study Assistant",
+  "subtitle": "Synthesizing live performance telemetry & weak topics",
+  "askPlaceholder": "Ask anything about your study plan or weak topics...",
+  "send": "Send",
+  "thinking": "AI is analyzing your telemetry...",
+  "quickPrompts": "Quick Prompts",
+  "prompt1": "What should I study today?",
+  "prompt2": "Why am I weak in Trigonometry?",
+  "prompt3": "Which test should I attempt next?",
+  "prompt4": "Show my score improvement progress",
+  "personalizedGuidance": "Personalized AI Guidance",
+  "weakTopicsFocus": "Areas Needing Attention",
+  "nextSteps": "Immediate Next Steps"
+}

@@ -1,0 +1,174 @@
+import React from 'react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { TestResult } from '../types';
+import { useTranslation } from 'react-i18next';
+import { Trophy, CheckCircle2, XCircle, AlertCircle, ArrowRight, Brain } from 'lucide-react';
+
+export const TestResultPage: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { t, i18n } = useTranslation(['tests', 'common', 'mistakes', 'studyPlan']);
+
+  const isGu = i18n.language === 'gu';
+  const result: TestResult | undefined = location.state?.result;
+
+  if (!result) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 space-y-4">
+        <p className="text-slate-400 text-sm">
+          {isGu ? 'કોઈ ટેસ્ટ પરિણામ ડેટા મળ્યો નથી.' : 'No test result data found.'}
+        </p>
+        <Link to="/tests" className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-semibold">
+          {isGu ? 'ટેસ્ટ કૅટેલોગ પર પાછા જાઓ' : 'Return to Tests Catalog'}
+        </Link>
+      </div>
+    );
+  }
+
+  const minsTaken = Math.floor(result.timeTakenSeconds / 60);
+  const secsTaken = result.timeTakenSeconds % 60;
+
+  return (
+    <div className="space-y-8 pb-12">
+      {/* Header Banner */}
+      <div className="bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/40 border border-blue-500/30 rounded-3xl p-8 shadow-xl text-center space-y-3">
+        <div className="inline-flex p-3 bg-blue-500/20 rounded-2xl text-blue-400 border border-blue-400/30">
+          <Trophy className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-extrabold text-white">{t('result')}</h1>
+        <p className="text-sm text-slate-300">
+          {isGu ? (result.testTitleGu || result.testTitle) : result.testTitle} ({isGu ? (result.subjectNameGu || result.subjectName) : result.subjectName})
+        </p>
+      </div>
+
+      {/* Main Metrics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
+          <span className="text-xs font-semibold text-slate-400 uppercase">{t('score')}</span>
+          <p className="text-2xl font-extrabold text-blue-400 mt-2">{result.score} / {result.maxScore}</p>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
+          <span className="text-xs font-semibold text-slate-400 uppercase">{t('percentage')}</span>
+          <p className="text-2xl font-extrabold text-indigo-400 mt-2">{result.percentage}%</p>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
+          <span className="text-xs font-semibold text-slate-400 uppercase">{t('accuracy')}</span>
+          <p className="text-2xl font-extrabold text-emerald-400 mt-2">{result.accuracy}%</p>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
+          <span className="text-xs font-semibold text-slate-400 uppercase">{t('timeTaken')}</span>
+          <p className="text-2xl font-extrabold text-amber-400 mt-2">
+            {minsTaken}{isGu ? ' મિનિટ ' : 'm '}{secsTaken}{isGu ? ' સેકન્ડ' : 's'}
+          </p>
+        </div>
+      </div>
+
+      {/* Breakdown Metrics */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            <span className="text-xs font-semibold text-slate-300">{t('correctAnswer')}</span>
+          </div>
+          <span className="text-base font-extrabold text-emerald-400">{result.correctCount}</span>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <XCircle className="w-5 h-5 text-red-400" />
+            <span className="text-xs font-semibold text-slate-300">{t('wrongAnswer')}</span>
+          </div>
+          <span className="text-base font-extrabold text-red-400">{result.wrongCount}</span>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <AlertCircle className="w-5 h-5 text-slate-500" />
+            <span className="text-xs font-semibold text-slate-300">{t('unanswered')}</span>
+          </div>
+          <span className="text-base font-extrabold text-slate-400">{result.unansweredCount}</span>
+        </div>
+      </div>
+
+      {/* What Should You Study Next Banner */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+        <h3 className="font-bold text-lg text-white flex items-center space-x-2">
+          <Brain className="w-5 h-5 text-blue-400" />
+          <span>{isGu ? 'આગળ તમારે શું અભ્યાસ કરવો જોઈએ?' : 'What Should You Study Next?'}</span>
+        </h3>
+        <p className="text-sm text-slate-300 leading-relaxed bg-slate-800/60 border border-slate-700/60 p-4 rounded-2xl italic">
+          "{isGu ? (result.whatToStudyNextGu || result.whatToStudyNext) : result.whatToStudyNext}"
+        </p>
+
+        <div className="flex items-center space-x-4 pt-2">
+          <button
+            onClick={() => navigate('/study-plan')}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-600/30 flex items-center space-x-2 transition-all"
+          >
+            <span>{isGu ? "આજની અભ્યાસ યોજના અપડેટ કરો" : "Update Today's Study Plan"}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => navigate('/mistake-book')}
+            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs rounded-xl transition-all"
+          >
+            {isGu ? 'ભૂલ પુસ્તિકાની સમીક્ષા કરો' : 'Review Mistake Book'}
+          </button>
+        </div>
+      </div>
+
+      {/* Detailed Question Explanations */}
+      {result.detailedAnswers && result.detailedAnswers.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+          <h3 className="font-bold text-lg text-white">{t('reviewAnswers')}</h3>
+          <div className="space-y-4">
+            {result.detailedAnswers.map((da, idx) => (
+              <div
+                key={da.questionId}
+                className={`p-5 rounded-2xl border ${
+                  da.isCorrect
+                    ? 'bg-emerald-500/5 border-emerald-500/20'
+                    : 'bg-red-500/5 border-red-500/20'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-400">
+                    {t('question')} {idx + 1} ({isGu ? (da.topicNameGu || da.topicName) : da.topicName})
+                  </span>
+                  <span className={`text-xs font-extrabold px-2.5 py-1 rounded-lg ${
+                    da.isCorrect ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                  }`}>
+                    {da.isCorrect ? t('correctAnswer') : t('wrongAnswer')}
+                  </span>
+                </div>
+                <h4 className="font-semibold text-sm text-white">
+                  {isGu ? (da.questionTextGu || da.questionText) : da.questionText}
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs mt-3">
+                  <div>
+                    <span className="text-slate-400">{isGu ? 'તમારો જવાબ: ' : 'Your Answer: '}</span>
+                    <span className={`font-bold ${da.isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {isGu ? (da.selectedOptionGu || da.selectedOption) : da.selectedOption}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">{t('correctAnswer')}: </span>
+                    <span className="font-bold text-emerald-400">
+                      {isGu ? (da.correctOptionGu || da.correctOption) : da.correctOption}
+                    </span>
+                  </div>
+                </div>
+
+                {(da.explanationGu || da.explanation) && (
+                  <p className="text-xs text-slate-300 mt-3 pt-3 border-t border-slate-800/80 leading-relaxed">
+                    <strong className="text-blue-400">{t('explanation')}: </strong>
+                    {isGu ? (da.explanationGu || da.explanation) : da.explanation}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -1,0 +1,73 @@
+{
+  "title": "શિક્ષક અને સંચાલક નિયંત્રણ કેન્દ્ર",
+  "subtitle": "અભ્યાસક્રમ વ્યવસ્થાપન, લાઇવ પ્રદર્શન અને વિદ્યાર્થી પ્રગતિ દેખરેખ",
+  "tabs": {
+    "overview": "ઝાંખી અને પ્રદર્શન",
+    "subjects": "વિષયો અને અધ્યાયો",
+    "questions": "પ્રશ્ન બેંક",
+    "tests": "મૂલ્યાંકન ટેસ્ટ",
+    "students": "વિદ્યાર્થી યાદી"
+  },
+  "metrics": {
+    "totalStudents": "કુલ વિદ્યાર્થીઓ",
+    "activeSubjects": "સક્રિય વિષયો",
+    "bankQuestions": "પ્રશ્ન બેંકના પ્રશ્નો",
+    "activeTests": "ઉપલબ્ધ ટેસ્ટ",
+    "totalAttempts": "કુલ ટેસ્ટ પ્રયાસો"
+  },
+  "subjects": {
+    "addSubject": "નવો વિષય ઉમેરો",
+    "editSubject": "વિષય સંપાદિત કરો",
+    "subjectNameEn": "વિષયનું નામ (અંગ્રેજી)",
+    "subjectNameGu": "વિષયનું નામ (ગુજરાતી)",
+    "code": "વિષય કોડ",
+    "standard": "ધોરણ",
+    "descriptionEn": "વર્ણન (અંગ્રેજી)",
+    "descriptionGu": "વર્ણન (ગુજરાતી)",
+    "chaptersCount": "અધ્યાયો",
+    "topicsCount": "મુદ્દાઓ",
+    "actions": "ક્રિયાઓ"
+  },
+  "questions": {
+    "addQuestion": "નવો પ્રશ્ન ઉમેરો",
+    "editQuestion": "પ્રશ્ન સંપાદિત કરો",
+    "subject": "વિષય",
+    "topic": "મુદ્દો",
+    "difficulty": "કઠિનતા",
+    "questionEn": "પ્રશ્ન લખાણ (અંગ્રેજી)",
+    "questionGu": "પ્રશ્ન લખાણ (ગુજરાતી)",
+    "explanationEn": "સમજૂતી (અંગ્રેજી)",
+    "explanationGu": "સમજૂતી (ગુજરાતી)",
+    "options": "વિકલ્પો",
+    "optionEn": "વિકલ્પ (અંગ્રેજી)",
+    "optionGu": "વિકલ્પ (ગુજરાતી)",
+    "correct": "સાચો",
+    "addOption": "વિકલ્પ ઉમેરો"
+  },
+  "tests": {
+    "createTest": "નવી ટેસ્ટ બનાવો",
+    "testTitleEn": "ટેસ્ટ શીર્ષક (અંગ્રેજી)",
+    "testTitleGu": "ટેસ્ટ શીર્ષક (ગુજરાતી)",
+    "testDescEn": "ટેસ્ટ વર્ણન (અંગ્રેજી)",
+    "testDescGu": "ટેસ્ટ વર્ણન (ગુજરાતી)",
+    "durationMinutes": "સમયગાળો (મિનિટ)",
+    "selectQuestions": "પ્રશ્નો પસંદ કરો",
+    "assignedQuestions": "સોંપાયેલ પ્રશ્નો"
+  },
+  "roster": {
+    "studentName": "વિદ્યાર્થીનું નામ",
+    "email": "ઈમેઇલ",
+    "standard": "ધોરણ",
+    "streak": "નિયમિતતા",
+    "testsAttempted": "આપેલ ટેસ્ટ",
+    "joinedDate": "જોડાવાની તારીખ"
+  },
+  "recentAttempts": {
+    "title": "તાજેતરના વિદ્યાર્થી ટેસ્ટ પ્રયાસો",
+    "student": "વિદ્યાર્થી",
+    "test": "ટેસ્ટ",
+    "subject": "વિષય",
+    "score": "ગુણ",
+    "date": "તારીખ"
+  }
+}

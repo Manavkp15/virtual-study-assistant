@@ -1,0 +1,243 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String          @id @default(uuid())
+  email        String          @unique
+  passwordHash String
+  name         String
+  role         String          @default("STUDENT") // STUDENT, ADMIN
+  createdAt    DateTime        @default(now())
+  profile      StudentProfile?
+  attempts     TestAttempt[]
+  performances TopicPerformance[]
+  mistakes     MistakeBookEntry[]
+  studyPlans   StudyPlan[]
+  notifications Notification[]
+  achievements Achievement[]
+}
+
+model StudentProfile {
+  id                   String    @id @default(uuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  standard             String    @default("Standard 8") // Standard 6, Standard 7, Standard 8
+  availableHoursPerDay Float     @default(2.5)
+  examDate             DateTime?
+  targetPercentage     Float     @default(85.0)
+  streakCount          Int       @default(1)
+  lastActiveDate       DateTime  @default(now())
+}
+
+model Subject {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  nameGu      String?
+  code        String    @unique
+  standard    String    @default("Standard 8") // Standard 6, Standard 7, Standard 8
+  icon        String    @default("book")
+  description String?
+  descriptionGu String?
+  createdAt   DateTime  @default(now())
+  chapters    Chapter[]
+  tests       Test[]
+}
+
+model Chapter {
+  id        String   @id @default(uuid())
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  name      String
+  nameGu    String?
+  order     Int      @default(1)
+  createdAt DateTime @default(now())
+  topics    Topic[]
+}
+
+model Topic {
+  id          String             @id @default(uuid())
+  chapterId   String
+  chapter     Chapter            @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  name        String
+  nameGu      String?
+  description String?
+  descriptionGu String?
+  createdAt   DateTime           @default(now())
+  questions   Question[]
+  performances TopicPerformance[]
+  mistakes    MistakeBookEntry[]
+  studyTasks  StudyTask[]
+}
+
+model Question {
+  id           String           @id @default(uuid())
+  topicId      String
+  topic        Topic            @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  questionText String
+  questionTextGu String?
+  explanation  String?
+  explanationGu String?
+  difficulty   String           @default("MEDIUM") // EASY, MEDIUM, HARD
+  createdAt    DateTime         @default(now())
+  options      QuestionOption[]
+  testQuestions TestQuestion[]
+  studentAnswers StudentAnswer[]
+  mistakes     MistakeBookEntry[]
+}
+
+model QuestionOption {
+  id         String          @id @default(uuid())
+  questionId String
+  question   Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionText String
+  optionTextGu String?
+  isCorrect  Boolean         @default(false)
+  studentAnswers StudentAnswer[]
+}
+
+model Test {
+  id              String         @id @default(uuid())
+  title           String
+  titleGu         String?
+  description     String?
+  descriptionGu   String?
+  subjectId       String
+  subject         Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  difficulty      String         @default("MEDIUM") // BASIC, MEDIUM, ADVANCED, CHALLENGE, REVISION
+  durationMinutes Int            @default(30)
+  passPercentage  Float          @default(60.0)
+  createdAt       DateTime       @default(now())
+  testQuestions   TestQuestion[]
+  attempts        TestAttempt[]
+}
+
+model TestQuestion {
+  id         String   @id @default(uuid())
+  testId     String
+  test       Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  order      Int      @default(1)
+}
+
+model TestAttempt {
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  testId           String
+  test             Test            @relation(fields: [testId], references: [id], onDelete: Cascade)
+  score            Float
+  maxScore         Float
+  percentage       Float
+  accuracy         Float
+  timeTakenSeconds Int
+  correctCount     Int
+  wrongCount       Int
+  unansweredCount  Int
+  completedAt      DateTime        @default(now())
+  studentAnswers   StudentAnswer[]
+}
+
+model StudentAnswer {
+  id               String          @id @default(uuid())
+  attemptId        String
+  attempt          TestAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId       String
+  question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptionId String?
+  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  isCorrect        Boolean         @default(false)
+  timeTakenSeconds Int             @default(0)
+  mistakes         MistakeBookEntry[]
+}
+
+model TopicPerformance {
+  id                     String   @id @default(uuid())
+  userId                 String
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId                String
+  topic                  Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  accuracy               Float    @default(0)
+  attemptCount           Int      @default(0)
+  repeatedMistakes       Int      @default(0)
+  totalQuestionsAttempted Int     @default(0)
+  totalCorrect           Int      @default(0)
+  status                 String   @default("AVERAGE") // EXCELLENT, STRONG, AVERAGE, NEEDS_IMPROVEMENT, CRITICAL
+  lastEvaluatedAt        DateTime @default(now())
+
+  @@unique([userId, topicId])
+}
+
+model MistakeBookEntry {
+  id              String         @id @default(uuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId      String
+  question        Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  studentAnswerId String?
+  studentAnswer   StudentAnswer? @relation(fields: [studentAnswerId], references: [id], onDelete: SetNull)
+  topicId         String
+  topic           Topic          @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  incorrectCount  Int            @default(1)
+  isResolved      Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  lastAttemptedAt DateTime       @default(now())
+}
+
+model StudyPlan {
+  id               String      @id @default(uuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availableMinutes Int         @default(150)
+  examDate         DateTime?
+  targetPercentage Float       @default(85.0)
+  createdAt        DateTime    @default(now())
+  tasks            StudyTask[]
+}
+
+model StudyTask {
+  id              String    @id @default(uuid())
+  planId          String
+  plan            StudyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  topicId         String
+  topic           Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  subjectName     String
+  topicName       String
+  durationMinutes Int
+  priority        String    @default("MEDIUM") // HIGH, MEDIUM, LOW
+  activityType    String    @default("CONCEPT_REVIEW") // CONCEPT_REVIEW, MCQ_PRACTICE, MISTAKE_REVISION, FORMULA_DRILL, MOCK_QUIZ
+  dayNumber       Int       @default(1) // 1 to 7 for weekly plan
+  isCompleted     Boolean   @default(false)
+  taskDate        DateTime  @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  titleGu   String?
+  message   String
+  messageGu String?
+  type      String   @default("INFO") // TEST, REVISION, STREAK, MISTAKE, ACHIEVEMENT
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Achievement {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeName     String
+  badgeNameGu   String?
+  badgeIcon     String   @default("award")
+  description   String
+  descriptionGu String?
+  unlockedAt    DateTime @default(now())
+}

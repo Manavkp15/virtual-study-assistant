@@ -1,0 +1,74 @@
+{
+  "appName": "વર્ચ્યુઅલ સ્ટડી આસિસ્ટન્ટ",
+  "tagline": "વર્ચ્યુઅલ અભ્યાસ પ્લેટફોર્મ",
+  "studentMode": "વિદ્યાર્થી મોડ",
+  "teacherMode": "શિક્ષક મોડ",
+  "assignedGrade": "સોંપેલ ધોરણ",
+  "streak": "દિવસની નિયમિતતા",
+  "notifications": "સૂચનાઓ",
+  "markAllRead": "બધી વંચાઈ ગઈ તરીકે માર્ક કરો",
+  "noNotifications": "કોઈ નવી સૂચના નથી",
+  "welcomeBack": "સ્વાગત છે",
+  "save": "સાચવો",
+  "saveChanges": "ફેરફારો સાચવો",
+  "saving": "સાચવી રહ્યું છે...",
+  "cancel": "રદ કરો",
+  "delete": "કાઢી નાખો",
+  "edit": "ફેરફાર કરો",
+  "search": "શોધો...",
+  "filter": "ફિલ્ટર",
+  "all": "બધા",
+  "active": "સક્રિય",
+  "status": "સ્થિતિ",
+  "actions": "ક્રિયાઓ",
+  "loading": "લોડ થઈ રહ્યું છે...",
+  "error": "એક ભૂલ આવી",
+  "success": "સફળતાપૂર્વક પૂર્ણ થયું",
+  "minutes": "મિનિટ",
+  "mins": "મિનિટ",
+  "hours": "કલાક",
+  "questions": "પ્રશ્નો",
+  "nav": {
+    "dashboard": "વિદ્યાર્થી ડેશબોર્ડ",
+    "subjects": "મારા વિષયો",
+    "studyPlan": "અભ્યાસ યોજના",
+    "tests": "ટેસ્ટ અને પ્રેક્ટિસ",
+    "mistakeBook": "ભૂલ પુસ્તિકા",
+    "analytics": "પ્રદર્શન વિશ્લેષણ",
+    "aiAssistant": "AI અભ્યાસ મદદગાર",
+    "profile": "પ્રોફાઇલ",
+    "teacherDashboard": "શિક્ષક ડેશબોર્ડ",
+    "logout": "લોગ આઉટ"
+  },
+  "roles": {
+    "student": "વિદ્યાર્થી",
+    "teacher": "શિક્ષક / એડમિન"
+  },
+  "standards": {
+    "standard6": "ધોરણ 6",
+    "standard7": "ધોરણ 7",
+    "standard8": "ધોરણ 8"
+  },
+  "difficulty": {
+    "EASY": "સરળ",
+    "MEDIUM": "મધ્યમ",
+    "HARD": "કઠિન",
+    "BASIC": "મૂળભૂત",
+    "ADVANCED": "અદ્યતન",
+    "CHALLENGE": "પડકારરૂપ",
+    "REVISION": "પુનરાવર્તન"
+  },
+  "priority": {
+    "CRITICAL": "અત્યંત મહત્વપૂર્ણ",
+    "HIGH": "ઉચ્ચ",
+    "MEDIUM": "મધ્યમ",
+    "LOW": "ઓછી"
+  },
+  "statusText": {
+    "EXCELLENT": "ઉત્કૃષ્ટ",
+    "STRONG": "મજબૂત",
+    "AVERAGE": "સામાન્ય",
+    "NEEDS_IMPROVEMENT": "સુધારાની જરૂર છે",
+    "CRITICAL": "ખાસ ધ્યાન આપવું"
+  }
+}
