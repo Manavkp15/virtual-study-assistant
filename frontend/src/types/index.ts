@@ -1,15 +1,21 @@
-export type Role = 'STUDENT' | 'ADMIN';
+export type Role = 'STUDENT' | 'TEACHER' | 'ADMIN';
 
 export interface User {
   id: string;
   email: string;
   name: string;
   role: Role;
+  avatarUrl?: string | null;
+  mobileNumber?: string | null;
+  emailVerified?: boolean;
   profile?: StudentProfile;
 }
 
 export interface StudentProfile {
   standard?: string;
+  rollNumber?: string | null;
+  mobileNumber?: string | null;
+  udiseCode?: string | null;
   availableHoursPerDay: number;
   examDate?: string;
   targetPercentage: number;
@@ -137,6 +143,9 @@ export interface TestResult {
   correctCount: number;
   wrongCount: number;
   unansweredCount: number;
+  requiresRemedial?: boolean;
+  remedialSupportMessage?: string;
+  remedialSupportMessageGu?: string;
   whatToStudyNext: string;
   whatToStudyNextGu?: string;
   detailedAnswers?: Array<{
@@ -153,6 +162,82 @@ export interface TestResult {
     explanation?: string;
     explanationGu?: string;
   }>;
+}
+
+export interface RemedialWeakTopic {
+  id: string;
+  name: string;
+  nameGu?: string;
+  description?: string;
+  descriptionGu?: string;
+}
+
+export interface RemedialQuestion {
+  id: string;
+  index: number;
+  questionText: string;
+  questionTextGu?: string;
+  topicName: string;
+  topicNameGu?: string;
+  topicId: string;
+  difficulty?: string;
+  options: Array<{
+    id: string;
+    optionText: string;
+    optionTextGu?: string;
+  }>;
+}
+
+export interface RemedialResult {
+  sessionId: string;
+  chapterName: string;
+  chapterNameGu?: string;
+  subjectName: string;
+  subjectNameGu?: string;
+  score: number;
+  maxScore: number;
+  percentage: number;
+  initialPercentage: number;
+  improvementPercentage: number;
+  isImproved: boolean;
+  encouragementMessage: string;
+  encouragementMessageGu?: string;
+  timeTakenSeconds: number;
+  correctCount: number;
+  wrongCount: number;
+  stillWeakTopics: Array<{ id: string; name: string; nameGu?: string }>;
+  detailedAnswers: Array<{
+    questionId: string;
+    questionText: string;
+    questionTextGu?: string;
+    topicName: string;
+    topicNameGu?: string;
+    selectedOption: string;
+    selectedOptionGu?: string;
+    correctOption: string;
+    correctOptionGu?: string;
+    isCorrect: boolean;
+    explanation?: string;
+    explanationGu?: string;
+  }>;
+}
+
+export interface RemedialHistoryItem {
+  id: string;
+  subjectName: string;
+  subjectNameGu?: string;
+  chapterName: string;
+  chapterNameGu?: string;
+  initialPercentage: number;
+  remedialPercentage: number;
+  improvementPercentage: number;
+  score: number;
+  maxScore: number;
+  completedAt: string;
+  encouragementMessage: string;
+  encouragementMessageGu?: string;
+  weakTopics: RemedialWeakTopic[];
+  stillWeakTopics: RemedialWeakTopic[];
 }
 
 export interface MistakeEntry {

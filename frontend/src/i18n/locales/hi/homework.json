@@ -1,0 +1,80 @@
+{
+  "title": "गृहकार्य प्रबंधन",
+  "studentTitle": "मेरा गृहकार्य (My Homework)",
+  "studentSubtitle": "असाइनमेंट देखें, अपना पीडीएफ गृहकार्य अपलोड करें, और शिक्षक की प्रतिक्रिया देखें",
+  "teacherTitle": "शिक्षक गृहकार्य प्रबंधन और मूल्यांकन",
+  "teacherSubtitle": "असाइनमेंट बनाएं, विद्यार्थी सबमिशन की जांच करें और प्रदर्शन ट्रैक करें",
+  "tabs": {
+    "allHomework": "सभी गृहकार्य",
+    "pending": "लंबित सबमिशन",
+    "submitted": "सबमिट किया गया",
+    "checked": "जाँचा गया और अंक दिए गए",
+    "late": "देर से सबमिशन",
+    "submissions": "सबमिशन और मूल्यांकन",
+    "assignments": "असाइनमेंट प्रबंधन",
+    "create": "नया गृहकार्य बनाएं",
+    "analytics": "गृहकार्य एनालिटिक्स"
+  },
+  "summary": {
+    "totalAssigned": "कुल आवंटित",
+    "pending": "लंबित",
+    "submitted": "सबमिट",
+    "late": "देर से",
+    "checked": "जाँचा गया",
+    "averageMarks": "औसत अंक",
+    "pendingReviews": "लंबित समीक्षाएं",
+    "totalSubmissions": "कुल सबमिशन",
+    "classAverage": "कक्षा का औसत",
+    "completionRate": "पूर्णता दर",
+    "subjectPerformance": "विषय-वार गृहकार्य प्रदर्शन"
+  },
+  "status": {
+    "PENDING": "लंबित",
+    "SUBMITTED": "सबमिट किया गया",
+    "LATE": "देर से सबमिट",
+    "CHECKED": "जाँचा गया"
+  },
+  "fields": {
+    "title": "गृहकार्य शीर्षक",
+    "titleGu": "गुजराती शीर्षक (वैकल्पिक)",
+    "subject": "विषय",
+    "chapter": "अध्याय",
+    "topic": "टॉपिक",
+    "standard": "कक्षा",
+    "teacher": "शिक्षक",
+    "student": "विद्यार्थी",
+    "instructions": "निर्देश और आवश्यकताएं",
+    "instructionsGu": "गुजराती निर्देश (वैकल्पिक)",
+    "assignedDate": "आवंटन तिथि",
+    "dueDate": "अंतिम तिथि",
+    "submittedDate": "सबमिशन तिथि",
+    "maxMarks": "अधिकतम अंक",
+    "marksObtained": "प्राप्त अंक",
+    "score": "स्कोर",
+    "teacherFeedback": "शिक्षक की प्रतिक्रिया",
+    "allowResubmission": "पुनः सबमिशन की अनुमति दें",
+    "version": "संस्करण"
+  },
+  "actions": {
+    "viewDetails": "विवरण देखें",
+    "uploadSolution": "गृहकार्य जमा करें (Upload PDF)",
+    "viewSubmission": "सबमिशन देखें",
+    "grade": "मूल्यांकन करें और अंक दें",
+    "downloadPdf": "पीडीएफ डाउनलोड करें",
+    "reUpload": "नया संस्करण अपलोड करें",
+    "createAssignment": "असाइनमेंट प्रकाशित करें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें"
+  },
+  "upload": {
+    "title": "अपना गृहकार्य पीडीएफ अपलोड करें",
+    "dropzoneTitle": "अपनी होमवर्क पीडीएफ फाइल यहाँ ड्रैग करें",
+    "dropzoneSubtitle": "या अपने डिवाइस से फाइल चुनें (केवल पीडीएफ, अधिकतम 20 MB)",
+    "selectFile": "पीडीएफ फाइल चुनें",
+    "changeFile": "फाइल बदलें",
+    "notesPlaceholder": "शिक्षक के लिए कोई अतिरिक्त नोट (वैकल्पिक)...",
+    "submitButton": "गृहकार्य जमा करें",
+    "submitting": "अपलोड हो रहा है...",
+    "resubmitWarning": "नोट: नई फाइल अपलोड करने से पिछला संस्करण बदल जाएगा।"
+  }
+}

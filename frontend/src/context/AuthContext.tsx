@@ -7,7 +7,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<void>;
-  register: (email: string, pass: string, name: string, role?: string, standard?: string) => Promise<void>;
+  register: (email: string, pass: string, name: string, role?: string, standard?: string) => Promise<any>;
   logout: () => void;
   updateProfileState: (updated: Partial<User>) => void;
 }
@@ -20,6 +20,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    // Purge any legacy saved credentials if they exist
+    localStorage.removeItem('vsa_saved_email');
+    localStorage.removeItem('vsa_saved_password');
+    localStorage.removeItem('vsa_save_password');
+
     const fetchMe = async () => {
       if (!token) {
         setLoading(false);
@@ -42,20 +47,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await api.post('/auth/login', { email, password: pass });
     const { token: jwtToken, user: userData } = res.data;
     localStorage.setItem('vsa_token', jwtToken);
+    // Ensure no plaintext credentials are stored
+    localStorage.removeItem('vsa_saved_email');
+    localStorage.removeItem('vsa_saved_password');
+    localStorage.removeItem('vsa_save_password');
     setToken(jwtToken);
     setUser(userData);
   };
 
   const register = async (email: string, pass: string, name: string, role: string = 'STUDENT', standard: string = 'Standard 8') => {
     const res = await api.post('/auth/register', { email, password: pass, name, role, standard });
-    const { token: jwtToken, user: userData } = res.data;
-    localStorage.setItem('vsa_token', jwtToken);
-    setToken(jwtToken);
-    setUser(userData);
+    // Registration only creates the account; explicit sign in is required as Step 2
+    return res.data;
   };
 
   const logout = () => {
     localStorage.removeItem('vsa_token');
+    localStorage.removeItem('vsa_saved_email');
+    localStorage.removeItem('vsa_saved_password');
+    localStorage.removeItem('vsa_save_password');
     setToken(null);
     setUser(null);
   };

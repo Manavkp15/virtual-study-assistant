@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { StudyPlan, StudyTask, ActivityType } from '../types';
 import { useTranslation } from 'react-i18next';
+import { tr, trSubject, trItem } from '../utils/tr';
 import {
   CalendarCheck,
   Clock,
@@ -25,8 +26,6 @@ export const StudyPlanPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
-  const isGu = i18n.language === 'gu';
-
   // Active View Tab: Daily vs 7-Day Weekly
   const [activeTab, setActiveTab] = useState<'DAILY' | 'WEEKLY'>('DAILY');
   const [selectedDayNumber, setSelectedDayNumber] = useState<number>(1);
@@ -43,7 +42,7 @@ export const StudyPlanPage: React.FC = () => {
   const fetchPlan = async () => {
     try {
       const res = await api.get('/study-plan/today', {
-        params: { lang: isGu ? 'gu' : 'en' }
+        params: { lang: i18n.language || 'en' }
       });
       setPlan(res.data.plan);
       if (res.data.plan) {
@@ -167,9 +166,7 @@ export const StudyPlanPage: React.FC = () => {
             <span>{t('myStudyPlan')}</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            {isGu
-              ? 'વિષય પ્રાથમિકતા સ્કોરની ગણતરી કરે છે, અભ્યાસ પ્રવૃત્તિઓ બદલે છે અને તમારી ૭-દિવસની યોજના બનાવે છે'
-              : 'Calculates topic priority scores, alternates study activity types, and builds your 7-day schedule'}
+            {tr('વિષય પ્રાથમિકતા સ્કોરની ગણતરી કરે છે, અભ્યાસ પ્રવૃત્તિઓ બદલે છે અને તમારી ૭-દિવસની યોજના બનાવે છે', 'Calculates topic priority scores, alternates study activity types, and builds your 7-day schedule', 'विषय प्राथमिकता स्कोर की गणना करता है, अध्ययन गतिविधियों को बदलता है और आपकी 7-दिवसीय योजना बनाता है')}
           </p>
         </div>
 
@@ -204,42 +201,42 @@ export const StudyPlanPage: React.FC = () => {
       {/* 5 Study Phases Banner */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl">
         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">
-          {isGu ? '૫ મુખ્ય અભ્યાસ તબક્કા' : '5 Core Learning Phases'}
+          {tr('૫ મુખ્ય અભ્યાસ તબક્કા', '5 Core Learning Phases')}
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs">
           <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-2xl space-y-1">
-            <span className="block font-bold text-blue-400 text-[11px] uppercase tracking-wider">{isGu ? 'તબક્કો ૧' : 'Phase 1'}</span>
+            <span className="block font-bold text-blue-400 text-[11px] uppercase tracking-wider">{tr('તબક્કો ૧', 'Phase 1')}</span>
             <span className="text-slate-100 font-bold block text-sm">{t('phases.learning')}</span>
             <p className="text-[11px] text-slate-400 leading-snug">
-              {isGu ? 'ખ્યાલોને સમજો અને જરૂરી અભ્યાસ સામગ્રી પૂર્ણ કરો.' : 'Understand the concepts and complete the required learning material.'}
+              {tr('ખ્યાલોને સમજો અને જરૂરી અભ્યાસ સામગ્રી પૂર્ણ કરો.', 'Understand the concepts and complete the required learning material.')}
             </p>
           </div>
           <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl space-y-1">
-            <span className="block font-bold text-emerald-400 text-[11px] uppercase tracking-wider">{isGu ? 'તબક્કો ૨' : 'Phase 2'}</span>
+            <span className="block font-bold text-emerald-400 text-[11px] uppercase tracking-wider">{tr('તબક્કો ૨', 'Phase 2')}</span>
             <span className="text-slate-100 font-bold block text-sm">{t('phases.practice')}</span>
             <p className="text-[11px] text-slate-400 leading-snug">
-              {isGu ? 'પ્રેક્ટિસ પ્રશ્નો ઉકેલીને તમારી સમજને મજબૂત બનાવો.' : 'Strengthen your understanding by solving practice questions.'}
+              {tr('પ્રેક્ટિસ પ્રશ્નો ઉકેલીને તમારી સમજને મજબૂત બનાવો.', 'Strengthen your understanding by solving practice questions.')}
             </p>
           </div>
           <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-1">
-            <span className="block font-bold text-amber-400 text-[11px] uppercase tracking-wider">{isGu ? 'તબક્કો ૩' : 'Phase 3'}</span>
+            <span className="block font-bold text-amber-400 text-[11px] uppercase tracking-wider">{tr('તબક્કો ૩', 'Phase 3')}</span>
             <span className="text-slate-100 font-bold block text-sm">{t('phases.weaknessRemoval')}</span>
             <p className="text-[11px] text-slate-400 leading-snug">
-              {isGu ? 'જે વિષયોમાં તમારું પ્રદર્શન નબળું રહ્યું છે તેના પર ધ્યાન આપો.' : 'Focus on topics where your performance has been low.'}
+              {tr('જે વિષયોમાં તમારું પ્રદર્શન નબળું રહ્યું છે તેના પર ધ્યાન આપો.', 'Focus on topics where your performance has been low.')}
             </p>
           </div>
           <div className="p-3.5 bg-purple-500/10 border border-purple-500/20 rounded-2xl space-y-1">
-            <span className="block font-bold text-purple-400 text-[11px] uppercase tracking-wider">{isGu ? 'તબક્કો ૪' : 'Phase 4'}</span>
+            <span className="block font-bold text-purple-400 text-[11px] uppercase tracking-wider">{tr('તબક્કો ૪', 'Phase 4')}</span>
             <span className="text-slate-100 font-bold block text-sm">{t('phases.finalRevision')}</span>
             <p className="text-[11px] text-slate-400 leading-snug">
-              {isGu ? 'પરીક્ષા પહેલાં મહત્વપૂર્ણ ખ્યાલો, સૂત્રો અને નોંધોનું પુનરાવર્તન કરો.' : 'Review important concepts, formulas, and notes before exams.'}
+              {tr('પરીક્ષા પહેલાં મહત્વપૂર્ણ ખ્યાલો, સૂત્રો અને નોંધોનું પુનરાવર્તન કરો.', 'Review important concepts, formulas, and notes before exams.')}
             </p>
           </div>
           <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-2xl space-y-1">
-            <span className="block font-bold text-rose-400 text-[11px] uppercase tracking-wider">{isGu ? 'તબક્કો ૫' : 'Phase 5'}</span>
+            <span className="block font-bold text-rose-400 text-[11px] uppercase tracking-wider">{tr('તબક્કો ૫', 'Phase 5')}</span>
             <span className="text-slate-100 font-bold block text-sm">{t('phases.mockTest')}</span>
             <p className="text-[11px] text-slate-400 leading-snug">
-              {isGu ? 'તમારી એકંદર તૈયારીનું મૂલ્યાંકન કરવા માટે સંપૂર્ણ પરીક્ષા-શૈલીની ટેસ્ટ આપો.' : 'Take a complete exam-style test to assess your overall preparation.'}
+              {tr('તમારી એકંદર તૈયારીનું મૂલ્યાંકન કરવા માટે સંપૂર્ણ પરીક્ષા-શૈલીની ટેસ્ટ આપો.', 'Take a complete exam-style test to assess your overall preparation.')}
             </p>
           </div>
         </div>
@@ -258,7 +255,7 @@ export const StudyPlanPage: React.FC = () => {
             <form onSubmit={handleGeneratePlan} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  {t('dailyStudyTime')}: <span className="text-blue-400 font-bold">{hours} {t('hoursPerDay')} ({hours * 60} {isGu ? 'મિનિટ' : 'mins'})</span>
+                  {t('dailyStudyTime')}: <span className="text-blue-400 font-bold">{hours} {t('hoursPerDay')} ({hours * 60} {tr('મિનિટ', 'mins')})</span>
                 </label>
                 <input
                   type="range"
@@ -346,7 +343,7 @@ export const StudyPlanPage: React.FC = () => {
                 <h3 className="font-bold text-lg text-white flex items-center space-x-2">
                   <span>{t('day')} {selectedDayNumber} {t('todaysPlan')}</span>
                   <span className="text-xs px-3 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full font-semibold">
-                    {plan?.availableMinutes} {isGu ? 'મિનિટ ફાળવેલ' : 'Mins Allocated'}
+                    {plan?.availableMinutes} {tr('મિનિટ ફાળવેલ', 'Mins Allocated')}
                   </span>
                 </h3>
               </div>
@@ -365,9 +362,7 @@ export const StudyPlanPage: React.FC = () => {
             <div className="space-y-3">
               {selectedDayTasks.length === 0 ? (
                 <p className="text-xs text-slate-500 text-center py-8">
-                  {isGu
-                    ? `દિવસ ${selectedDayNumber} માટે કોઈ કાર્ય નિર્ધારિત નથી. તમારી યોજના બનાવવા માટે "નવી 7-દિવસની યોજના બનાવો" પર ક્લિક કરો!`
-                    : `No tasks scheduled for ${t('day')} ${selectedDayNumber}. Click "${t('generatePlan')}" to build your schedule!`}
+                  {tr(`દિવસ ${selectedDayNumber} માટે કોઈ કાર્ય નિર્ધારિત નથી. તમારી યોજના બનાવવા માટે "નવી 7-દિવસની યોજના બનાવો" પર ક્લિક કરો!`, `No tasks scheduled for ${t('day')} ${selectedDayNumber}. Click "${t('generatePlan')}" to build your schedule!`, `दिन ${selectedDayNumber} के लिए कोई कार्य निर्धारित नहीं है। अपना शेड्यूल बनाने के लिए "नई 7-दिवसीय योजना बनाएं" पर क्लिक करें!`)}
                 </p>
               ) : (
                 selectedDayTasks.map((task) => {
@@ -394,7 +389,7 @@ export const StudyPlanPage: React.FC = () => {
                         <div>
                           <div className="flex flex-wrap items-center gap-2 mb-1">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">
-                              📚 {isGu ? (task.subjectNameGu || task.subjectName) : task.subjectName}
+                              📚 {trSubject(task)}
                             </span>
 
                             {/* Varied Activity Badge */}
@@ -405,7 +400,7 @@ export const StudyPlanPage: React.FC = () => {
                           </div>
 
                           <h4 className={`font-bold text-sm ${task.isCompleted ? 'line-through text-slate-400' : 'text-white'}`}>
-                            {isGu ? (task.topicNameGu || task.topicName) : task.topicName}
+                            {trItem(task.topicNameGu, task.topicName)}
                           </h4>
                         </div>
                       </div>
@@ -413,7 +408,7 @@ export const StudyPlanPage: React.FC = () => {
                       <div className="flex items-center space-x-3 self-end sm:self-auto shrink-0">
                         <div className="flex items-center space-x-1 text-slate-300 text-xs font-semibold px-2.5 py-1 bg-slate-900/60 rounded-xl border border-slate-700">
                           <Clock className="w-3.5 h-3.5 text-blue-400" />
-                          <span>{task.durationMinutes} {isGu ? 'મિનિટ' : 'mins'}</span>
+                          <span>{task.durationMinutes} {tr('મિનિટ', 'mins')}</span>
                         </div>
                         <span className={`px-2.5 py-1 rounded-xl text-[10px] font-extrabold uppercase ${
                           task.priority === 'HIGH' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :

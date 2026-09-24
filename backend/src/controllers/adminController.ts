@@ -41,6 +41,9 @@ export const getAdminOverview = async (req: AuthenticatedRequest, res: Response)
         id: s.id,
         name: s.name,
         email: s.email,
+        mobileNumber: s.mobileNumber || s.profile?.mobileNumber || '',
+        rollNumber: s.profile?.rollNumber || '',
+        udiseCode: s.profile?.udiseCode || '',
         standard: s.profile?.standard || 'Standard 8',
         streakCount: s.profile?.streakCount || 0,
         testsAttempted: s._count.attempts,
@@ -339,3 +342,124 @@ export const createTest = async (req: AuthenticatedRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to create test' });
   }
 };
+
+export const deleteStudent = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const student = await prisma.user.findUnique({
+      where: { id },
+      include: { profile: true }
+    });
+
+    if (!student || student.role !== 'STUDENT') {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    // Delete student activity data
+    await prisma.homeworkSubmissionHistory.deleteMany({
+      where: { submission: { studentId: id } }
+    });
+    await prisma.homeworkSubmission.deleteMany({ where: { studentId: id } });
+    await prisma.studyMaterialAccess.deleteMany({ where: { studentId: id } });
+    await prisma.studentAnswer.deleteMany({ where: { attempt: { userId: id } } });
+    await prisma.testAttempt.deleteMany({ where: { userId: id } });
+    await prisma.mistakeBookEntry.deleteMany({ where: { userId: id } });
+    await prisma.topicPerformance.deleteMany({ where: { userId: id } });
+    await prisma.studyTask.deleteMany({ where: { plan: { userId: id } } });
+    await prisma.studyPlan.deleteMany({ where: { userId: id } });
+    await prisma.notification.deleteMany({ where: { userId: id } });
+    await prisma.achievement.deleteMany({ where: { userId: id } });
+
+    if (student.profile) {
+      await prisma.studentProfile.delete({ where: { userId: id } });
+    }
+
+    await prisma.user.delete({ where: { id } });
+
+    res.json({ message: `Student ${student.name} and all profile data deleted successfully` });
+  } catch (error) {
+    console.error('Delete student error:', error);
+    res.status(500).json({ error: 'Failed to delete student' });
+  }
+};
+
+export const clearStudentProfiles = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { standard } = req.query; // optional: e.g. 'Standard 6', 'Standard 7', 'Standard 8', or 'ALL'
+
+    let studentUsers;
+    if (standard && standard !== 'ALL') {
+      studentUsers = await prisma.user.findMany({
+        where: {
+          role: 'STUDENT',
+          profile: { standard: String(standard) }
+        },
+        select: { id: true }
+      });
+    } else {
+      studentUsers = await prisma.user.findMany({
+        where: { role: 'STUDENT' },
+        select: { id: true }
+      });
+    }
+
+    const studentIds = studentUsers.map(s => s.id);
+
+    if (studentIds.length === 0) {
+      return res.json({ message: 'No student profiles found to clear', count: 0 });
+    }
+
+    // Delete associated student activity
+    await prisma.homeworkSubmissionHistory.deleteMany({
+      where: { submission: { studentId: { in: studentIds } } }
+    });
+    await prisma.homeworkSubmission.deleteMany({
+      where: { studentId: { in: studentIds } }
+    });
+    await prisma.studyMaterialAccess.deleteMany({
+      where: { studentId: { in: studentIds } }
+    });
+    await prisma.studentAnswer.deleteMany({
+      where: { attempt: { userId: { in: studentIds } } }
+    });
+    await prisma.testAttempt.deleteMany({
+      where: { userId: { in: studentIds } }
+    });
+    await prisma.mistakeBookEntry.deleteMany({
+      where: { userId: { in: studentIds } }
+    });
+    await prisma.topicPerformance.deleteMany({
+      where: { userId: { in: studentIds } }
+    });
+    await prisma.studyTask.deleteMany({
+      where: { plan: { userId: { in: studentIds } } }
+    });
+    await prisma.studyPlan.deleteMany({
+      where: { userId: { in: studentIds } }
+    });
+    await prisma.notification.deleteMany({
+      where: { userId: { in: studentIds } }
+    });
+    await prisma.achievement.deleteMany({
+      where: { userId: { in: studentIds } }
+    });
+
+    await prisma.studentProfile.deleteMany({
+      where: { userId: { in: studentIds } }
+    });
+
+    const deleted = await prisma.user.deleteMany({
+      where: { id: { in: studentIds } }
+    });
+
+    res.json({
+      message: `Successfully cleared ${deleted.count} student profiles and user credentials${standard && standard !== 'ALL' ? ` for ${standard}` : ' across all standards'}`,
+      count: deleted.count
+    });
+  } catch (error) {
+    console.error('Clear students error:', error);
+    res.status(500).json({ error: 'Failed to clear student profiles' });
+  }
+};
+

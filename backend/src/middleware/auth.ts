@@ -14,7 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'study_assistant_super_secret_jwt_k
 
 export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = (authHeader && authHeader.split(' ')[1]) || (req.query.token as string);
 
   if (!token) {
     return res.status(401).json({ error: 'Access token required' });
@@ -30,7 +30,7 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
 };
 
 export const requireAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  if (!req.user || req.user.role !== 'ADMIN') {
+  if (!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'TEACHER')) {
     return res.status(403).json({ error: 'Admin / Teacher access required' });
   }
   next();

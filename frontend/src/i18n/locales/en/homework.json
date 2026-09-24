@@ -1,0 +1,140 @@
+{
+  "title": "Homework Management",
+  "studentTitle": "My Homework",
+  "studentSubtitle": "View assignments, upload your PDF homework, and review teacher feedback",
+  "teacherTitle": "Teacher Homework Management & Checking",
+  "teacherSubtitle": "Create assignments, evaluate student PDF submissions, and track performance",
+  
+  "tabs": {
+    "allHomework": "All Homework",
+    "pending": "Pending Submissions",
+    "submitted": "Submitted",
+    "checked": "Checked & Graded",
+    "late": "Late Submissions",
+    "submissions": "Submissions & Checking",
+    "assignments": "Manage Assignments",
+    "create": "Create Homework",
+    "analytics": "Homework Analytics"
+  },
+
+  "summary": {
+    "totalAssigned": "Total Assigned",
+    "pending": "Pending",
+    "submitted": "Submitted",
+    "late": "Late",
+    "checked": "Checked",
+    "averageMarks": "Average Marks",
+    "pendingReviews": "Pending Reviews",
+    "totalSubmissions": "Total Submissions",
+    "classAverage": "Class Average",
+    "completionRate": "Completion Rate",
+    "subjectPerformance": "Subject-wise Homework Performance"
+  },
+
+  "status": {
+    "PENDING": "Pending",
+    "SUBMITTED": "Submitted",
+    "LATE": "Late Submission",
+    "CHECKED": "Checked"
+  },
+
+  "fields": {
+    "title": "Homework Title",
+    "titleGu": "Gujarati Title (Optional)",
+    "subject": "Subject",
+    "chapter": "Chapter",
+    "topic": "Topic",
+    "standard": "Class / Standard",
+    "teacher": "Teacher",
+    "student": "Student",
+    "instructions": "Instructions & Requirements",
+    "instructionsGu": "Gujarati Instructions (Optional)",
+    "assignedDate": "Assigned Date",
+    "dueDate": "Due Date",
+    "submittedDate": "Submitted Date",
+    "maxMarks": "Maximum Marks",
+    "marksObtained": "Marks Obtained",
+    "score": "Score",
+    "teacherFeedback": "Teacher Feedback",
+    "allowResubmission": "Allow Re-submission",
+    "version": "Version",
+    "file": "PDF Document",
+    "selectFile": "Select PDF",
+    "fileName": "File Name",
+    "fileSize": "File Size"
+  },
+
+  "upload": {
+    "dropzoneTitle": "Upload Homework PDF",
+    "dropzoneSubtitle": "Drag and drop your PDF here, or click to browse",
+    "supportedFormat": "PDF documents only",
+    "selected": "Selected file",
+    "uploading": "Uploading PDF...",
+    "submitBtn": "Submit Homework",
+    "replaceBtn": "Replace Submission",
+    "resubmitAllowed": "Re-submission is enabled for this assignment",
+    "resubmitWarning": "Re-submitting will update your submission and clear previous evaluation for re-grading.",
+    "success": "Homework PDF submitted successfully!",
+    "error": "Failed to upload homework PDF",
+    "onlyPdf": "Only valid PDF files are allowed. Please select a .pdf document.",
+    "selectFileFirst": "Please select a PDF file before submitting."
+  },
+
+  "viewer": {
+    "modalTitle": "Submitted Homework PDF",
+    "openNewTab": "Open in New Tab",
+    "download": "Download PDF",
+    "close": "Close Preview",
+    "fallbackMsg": "Your browser does not support embedded PDF viewing. Please use the buttons above to open or download the PDF.",
+    "loading": "Loading PDF document..."
+  },
+
+  "evaluation": {
+    "modalTitle": "Evaluate Student Submission",
+    "studentDetails": "Student Details",
+    "submissionDetails": "Submission Details",
+    "enterMarks": "Enter Marks",
+    "outOf": "out of",
+    "feedbackPlaceholder": "Provide constructive feedback, praise, or areas for improvement...",
+    "saveEvaluation": "Save Evaluation",
+    "markChecked": "Mark as Checked",
+    "evaluatedSuccess": "Homework evaluated and graded successfully!",
+    "evaluatedOn": "Evaluated on",
+    "evaluatedBy": "Evaluated by",
+    "history": "Submission History"
+  },
+
+  "actions": {
+    "submit": "Submit Homework",
+    "viewPdf": "View PDF",
+    "evaluate": "Review & Grade",
+    "reEvaluate": "Re-evaluate",
+    "editHomework": "Edit Assignment",
+    "deleteHomework": "Delete Assignment",
+    "createAssignment": "Create Assignment",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel",
+    "clearFilters": "Clear Filters"
+  },
+
+  "filters": {
+    "searchPlaceholder": "Search by title, student, or subject...",
+    "allStandards": "All Standards",
+    "allSubjects": "All Subjects",
+    "allStatuses": "All Statuses",
+    "filterBy": "Filter Submissions"
+  },
+
+  "confirm": {
+    "deleteTitle": "Delete Homework Assignment?",
+    "deleteMsg": "Are you sure you want to delete this homework? All student submissions and grades for this homework will be permanently removed.",
+    "confirmDelete": "Yes, Delete",
+    "cancel": "Cancel"
+  },
+
+  "empty": {
+    "noHomeworkAssigned": "No homework assigned at this time. Check back later!",
+    "noSubmissions": "No submissions found matching the selected filters.",
+    "noPendingReviews": "Great job! All submitted homework has been reviewed and graded."
+  }
+}

@@ -11,5 +11,17 @@
   "prompt4": "Show my score improvement progress",
   "personalizedGuidance": "Personalized AI Guidance",
   "weakTopicsFocus": "Areas Needing Attention",
-  "nextSteps": "Immediate Next Steps"
+  "nextSteps": "Immediate Next Steps",
+  "tts": {
+    "readAloud": "Read Aloud",
+    "reading": "Reading...",
+    "paused": "Paused",
+    "resume": "Resume",
+    "pause": "Pause",
+    "stop": "Stop",
+    "speed": "Speed",
+    "voice": "Voice",
+    "defaultVoice": "Default Voice",
+    "unsupported": "Text-to-Speech is not supported in this browser."
+  }
 }

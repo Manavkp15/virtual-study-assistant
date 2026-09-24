@@ -1,0 +1,21 @@
+{
+  "title": "स्मार्ट मिस्टेक बुक",
+  "subtitle": "परीक्षा में बार-बार होने वाली गलतियों को ट्रैक करें और समझ को सुदृढ़ बनाएं",
+  "weakTopics": "कमजोर विषय",
+  "strongTopics": "मजबूत विषय",
+  "critical": "अति आवश्यक",
+  "needsImprovement": "सुधार आवश्यक",
+  "repeatedMistakes": "दोहराई गई गलतियां",
+  "recommendedRevision": "अनुशंसित पुनरावृत्ति",
+  "priorityScore": "प्राथमिकता स्कोर",
+  "reason": "कारण",
+  "timesIncorrect": "गलत होने की संख्या",
+  "resolved": "हल किया गया",
+  "pending": "लंबित त्रुटि",
+  "yourAnswer": "आपका चुना हुआ उत्तर",
+  "correctAnswer": "सही समाधान",
+  "solutionExplanation": "समाधान की व्याख्या",
+  "markResolved": "हल किया गया मार्क करें",
+  "noMistakes": "कोई गलती दर्ज नहीं है! आपका काम बहुत बढ़िया है।",
+  "allMistakesResolved": "सभी दर्ज गलतियों की समीक्षा और समाधान हो चुका है।"
+}

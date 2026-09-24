@@ -33,49 +33,58 @@ async function main() {
   await prisma.studentProfile.deleteMany();
   await prisma.user.deleteMany();
 
-  // Create Users
-  const passwordHash = await bcrypt.hash('password123', 10);
-  const adminPasswordHash = await bcrypt.hash('admin123', 10);
+  // Create Users (only if explicitly enabled via SEED_DEMO_USERS=true)
+  const shouldSeedUsers = process.env.SEED_DEMO_USERS === 'true';
+  let studentUser: any = null;
+  let teacherUser: any = null;
+  let adminUser: any = null;
 
-  const studentUser = await prisma.user.create({
-    data: {
-      email: 'student@example.com',
-      passwordHash: passwordHash,
-      name: 'Zain Patel',
-      role: 'STUDENT',
-      profile: {
-        create: {
-          availableHoursPerDay: 3.0,
-          examDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-          targetPercentage: 85.0,
-          streakCount: 5,
-          lastActiveDate: new Date()
+  if (shouldSeedUsers) {
+    const passwordHash = await bcrypt.hash('password123', 10);
+    const adminPasswordHash = await bcrypt.hash('admin123', 10);
+
+    studentUser = await prisma.user.create({
+      data: {
+        email: 'student@example.com',
+        passwordHash: passwordHash,
+        name: 'Zain Patel',
+        role: 'STUDENT',
+        profile: {
+          create: {
+            availableHoursPerDay: 3.0,
+            examDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            targetPercentage: 85.0,
+            streakCount: 5,
+            lastActiveDate: new Date()
+          }
         }
       }
-    }
-  });
+    });
 
-  const teacherPasswordHash = await bcrypt.hash('teacher123', 10);
+    const teacherPasswordHash = await bcrypt.hash('teacher123', 10);
 
-  const teacherUser = await prisma.user.create({
-    data: {
-      email: 'teacher@example.com',
-      passwordHash: teacherPasswordHash,
-      name: 'Prof. Alex Vance',
-      role: 'ADMIN'
-    }
-  });
+    teacherUser = await prisma.user.create({
+      data: {
+        email: 'teacher@example.com',
+        passwordHash: teacherPasswordHash,
+        name: 'Prof. Alex Vance',
+        role: 'ADMIN'
+      }
+    });
 
-  const adminUser = await prisma.user.create({
-    data: {
-      email: 'admin@example.com',
-      passwordHash: adminPasswordHash,
-      name: 'Admin User',
-      role: 'ADMIN'
-    }
-  });
+    adminUser = await prisma.user.create({
+      data: {
+        email: 'admin@example.com',
+        passwordHash: adminPasswordHash,
+        name: 'Admin User',
+        role: 'ADMIN'
+      }
+    });
 
-  console.log('👤 Users created: Student (student@example.com / password123), Teacher (teacher@example.com / teacher123)');
+    console.log('👤 Users created: Student (student@example.com / password123), Teacher (teacher@example.com / teacher123)');
+  } else {
+    console.log('👤 Clean database mode: Skipping demo users, emails, passwords, and student profiles');
+  }
 
   // Create Subjects (Standard-wise with Gujarati names)
   const math = await prisma.subject.create({
@@ -614,8 +623,9 @@ async function main() {
 
   console.log('📝 Tests created with bilingual fields');
 
-  // Seed Previous Test Attempts for Student (Zain Patel)
-  const attempt1 = await prisma.testAttempt.create({
+  if (shouldSeedUsers && studentUser) {
+    // Seed Previous Test Attempts for Student (Zain Patel)
+    const attempt1 = await prisma.testAttempt.create({
     data: {
       userId: studentUser.id,
       testId: mathTest1.id,
@@ -907,6 +917,7 @@ async function main() {
       }
     ]
   });
+  }
 
   console.log('✅ Database seeding finished successfully with bilingual support!');
 }

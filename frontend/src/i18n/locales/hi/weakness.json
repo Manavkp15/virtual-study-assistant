@@ -1,0 +1,11 @@
+{
+  "title": "कमजोरी निवारण चरण",
+  "subtitle": "उन विषयों पर विशेष ध्यान दें जिनमें आपका प्रदर्शन कमजोर रहा है।",
+  "identifiedWeaknesses": "पहचाने गए कमजोर विषय",
+  "targetedRemediation": "लक्षित उपचारात्मक अध्ययन",
+  "recommendedActions": "अनुशंसित कदम",
+  "status": "ध्यान आवश्यक",
+  "clearWeakness": "कमजोरी दूर करें",
+  "accuracyThreshold": "सटीकता सीमा",
+  "repeatedErrors": "बार-बार होने वाली त्रुटियां"
+}

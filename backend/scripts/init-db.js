@@ -23,15 +23,15 @@ async function init() {
   });
 
   try {
-    const userCount = await prisma.user.count();
-    console.log(`[Database Init] Current user count in database: ${userCount}`);
+    const subjectCount = await prisma.subject.count();
+    console.log(`[Database Init] Current subject count in database: ${subjectCount}`);
     
-    if (userCount === 0) {
-      console.log('[Database Init] Database is empty. Running initial bilingual seed...');
+    if (subjectCount === 0) {
+      console.log('[Database Init] Database has no subjects. Running initial bilingual seed...');
       execSync('npx ts-node prisma/seed.ts', { stdio: 'inherit', env: process.env });
       console.log('[Database Init] Initial seed completed successfully.');
     } else {
-      console.log('[Database Init] Database already contains data. Skipping seed to preserve data.');
+      console.log('[Database Init] Database already contains curriculum data. Skipping seed to preserve clean user state.');
     }
   } catch (err) {
     console.warn('[Database Init] Warning during seed check:', err.message);

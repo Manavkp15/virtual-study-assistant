@@ -1,0 +1,140 @@
+{
+  "title": "ગૃહકાર્ય વ્યવસ્થાપન",
+  "studentTitle": "મારું ગૃહકાર્ય",
+  "studentSubtitle": "સોંપાયેલા કાર્યો જુઓ, તમારી PDF અપલોડ કરો અને શિક્ષકનો પ્રતિસાદ મેળવો",
+  "teacherTitle": "શિક્ષક ગૃહકાર્ય વ્યવસ્થાપન અને ચકાસણી",
+  "teacherSubtitle": "ગૃહકાર્ય બનાવો, વિદ્યાર્થીઓની PDF ચકાસો અને પ્રદર્શન ટ્રેક કરો",
+  
+  "tabs": {
+    "allHomework": "બધું ગૃહકાર્ય",
+    "pending": "બાકી સબમિશન",
+    "submitted": "સબમિટ થયેલ",
+    "checked": "તપાસાયેલ અને ગુણ આપેલ",
+    "late": "મોડું સબમિશન",
+    "submissions": "સબમિશન અને ચકાસણી",
+    "assignments": "ગૃહકાર્ય સંચાલન",
+    "create": "નવું ગૃહકાર્ય બનાવો",
+    "analytics": "ગૃહકાર્ય વિશ્લેષણ"
+  },
+
+  "summary": {
+    "totalAssigned": "કુલ સોંપાયેલ",
+    "pending": "બાકી",
+    "submitted": "સબમિટ કરેલ",
+    "late": "મોડું થયેલ",
+    "checked": "તપાસાયેલ",
+    "averageMarks": "સરેરાશ ગુણ",
+    "pendingReviews": "ચકાસણી બાકી",
+    "totalSubmissions": "કુલ સબમિશન",
+    "classAverage": "વર્ગ સરેરાશ",
+    "completionRate": "પૂર્ણતા દર",
+    "subjectPerformance": "વિષયવાર ગૃહકાર્ય પ્રદર્શન"
+  },
+
+  "status": {
+    "PENDING": "બાકી",
+    "SUBMITTED": "સબમિટ કરેલ",
+    "LATE": "મોડું સબમિશન",
+    "CHECKED": "તપાસાયેલ"
+  },
+
+  "fields": {
+    "title": "ગૃહકાર્ય શીર્ષક",
+    "titleGu": "ગુજરાતી શીર્ષક (વૈકલ્પિક)",
+    "subject": "વિષય",
+    "chapter": "પ્રકરણ",
+    "topic": "મુદ્દો",
+    "standard": "ધોરણ / વર્ગ",
+    "teacher": "શિક્ષક",
+    "student": "વિદ્યાર્થી",
+    "instructions": "સૂચનાઓ અને જરૂરિયાતો",
+    "instructionsGu": "ગુજરાતી સૂચનાઓ (વૈકલ્પિક)",
+    "assignedDate": "સોંપણી તારીખ",
+    "dueDate": "નિયત તારીખ",
+    "submittedDate": "સબમિટ તારીખ",
+    "maxMarks": "મહત્તમ ગુણ",
+    "marksObtained": "મેળવેલ ગુણ",
+    "score": "ગુણ",
+    "teacherFeedback": "શિક્ષકનો પ્રતિસાદ",
+    "allowResubmission": "પુનઃ સબમિશનની છૂટ",
+    "version": "આવૃત્તિ",
+    "file": "PDF દસ્તાવેજ",
+    "selectFile": "PDF પસંદ કરો",
+    "fileName": "ફાઇલ નામ",
+    "fileSize": "ફાઇલ માપ"
+  },
+
+  "upload": {
+    "dropzoneTitle": "ગૃહકાર્ય PDF અપલોડ કરો",
+    "dropzoneSubtitle": "તમારી PDF અહીં ખેંચીને મૂકો, અથવા બ્રાઉઝ કરવા ક્લિક કરો",
+    "supportedFormat": "માત્ર PDF દસ્તાવેજ",
+    "selected": "પસંદ કરેલ ફાઇલ",
+    "uploading": "PDF અપલોડ થઈ રહી છે...",
+    "submitBtn": "ગૃહકાર્ય સબમિટ કરો",
+    "replaceBtn": "સબમિશન બદલો / ફરી મોકલો",
+    "resubmitAllowed": "આ ગૃહકાર્ય માટે પુનઃ સબમિશન સક્ષમ છે",
+    "resubmitWarning": "પુનઃ સબમિટ કરવાથી અગાઉનું મૂલ્યાંકન રદ થશે અને નવી ચકાસણી માટે મોકલાશે.",
+    "success": "ગૃહકાર્ય PDF સફળતાપૂર્વક સબમિટ થઈ!",
+    "error": "ગૃહકાર્ય PDF અપલોડ કરવામાં નિષ્ફળતા",
+    "onlyPdf": "માત્ર માન્ય PDF ફાઇલો જ સ્વીકાર્ય છે. કૃપા કરીને .pdf ફાઇલ પસંદ કરો.",
+    "selectFileFirst": "સબમિટ કરતા પહેલાં કૃપા કરીને PDF ફાઇલ પસંદ કરો."
+  },
+
+  "viewer": {
+    "modalTitle": "સબમિટ કરેલ ગૃહકાર્ય PDF",
+    "openNewTab": "નવા ટેબમાં ખોલો",
+    "download": "PDF ડાઉનલોડ કરો",
+    "close": "બંધ કરો",
+    "fallbackMsg": "તમારું બ્રાઉઝર એમ્બેડેડ PDF દર્શાવવા સમર્થ નથી. કૃપા કરીને ઉપર આપેલા બટનથી ખોલો અથવા ડાઉનલોડ કરો.",
+    "loading": "PDF દસ્તાવેજ લોડ થઈ રહ્યો છે..."
+  },
+
+  "evaluation": {
+    "modalTitle": "વિદ્યાર્થી સબમિશનનું મૂલ્યાંકન",
+    "studentDetails": "વિદ્યાર્થી વિગત",
+    "submissionDetails": "સબમિશન વિગત",
+    "enterMarks": "ગુણ દાખલ કરો",
+    "outOf": "માંથી",
+    "feedbackPlaceholder": "વિદ્યાર્થી માટે રચનાત્મક પ્રતિસાદ, પ્રોત્સાહન અથવા સુધારણા માટે માર્ગદર્શન આપો...",
+    "saveEvaluation": "મૂલ્યાંકન સાચવો",
+    "markChecked": "તપાસાયેલ તરીકે ચિહ્નિત કરો",
+    "evaluatedSuccess": "ગૃહકાર્યનું મૂલ્યાંકન સફળતાપૂર્વક સાચવવામાં આવ્યું!",
+    "evaluatedOn": "ચકાસણી તારીખ",
+    "evaluatedBy": "તપાસનાર",
+    "history": "સબમિશન ઇતિહાસ"
+  },
+
+  "actions": {
+    "submit": "ગૃહકાર્ય સબમિટ કરો",
+    "viewPdf": "PDF જુઓ",
+    "evaluate": "ચકાસો અને ગુણ આપો",
+    "reEvaluate": "ફરી તપાસો",
+    "editHomework": "ગૃહકાર્ય સંપાદિત કરો",
+    "deleteHomework": "ગૃહકાર્ય કાઢી નાખો",
+    "createAssignment": "ગૃહકાર્ય સોંપો",
+    "saveChanges": "ફેરફારો સાચવો",
+    "cancel": "રદ કરો",
+    "clearFilters": "ફિલ્ટર સાફ કરો"
+  },
+
+  "filters": {
+    "searchPlaceholder": "શીર્ષક, વિદ્યાર્થી કે વિષય શોધો...",
+    "allStandards": "બધા ધોરણો",
+    "allSubjects": "બધા વિષયો",
+    "allStatuses": "બધી સ્થિતિ",
+    "filterBy": "સબમિશન ફિલ્ટર કરો"
+  },
+
+  "confirm": {
+    "deleteTitle": "ગૃહકાર્ય કાઢી નાખવું છે?",
+    "deleteMsg": "શું તમે ખરેખર આ ગૃહકાર્ય કાઢી નાખવા માંગો છો? આના તમામ વિદ્યાર્થી સબમિશન્સ અને ગુણ કાયમ માટે દૂર થઈ જશે.",
+    "confirmDelete": "હા, કાઢી નાખો",
+    "cancel": "રદ કરો"
+  },
+
+  "empty": {
+    "noHomeworkAssigned": "હાલમાં કોઈ ગૃહકાર્ય સોંપાયેલું નથી. થોડા સમય પછી ફરી તપાસો!",
+    "noSubmissions": "પસંદ કરેલ ફિલ્ટર મુજબ કોઈ સબમિશન મળ્યા નથી.",
+    "noPendingReviews": "ખૂબ સરસ! બધા સબમિટ થયેલા ગૃહકાર્ય તપાસાઈ ગયા છે."
+  }
+}

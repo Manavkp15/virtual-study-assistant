@@ -337,6 +337,13 @@ export const submitTest = async (req: AuthenticatedRequest, res: Response) => {
         correctCount,
         wrongCount,
         unansweredCount,
+        requiresRemedial: percentage < 50,
+        remedialSupportMessage: percentage < 50
+          ? "Let's improve this topic! You may need a little more practice with this chapter."
+          : null,
+        remedialSupportMessageGu: percentage < 50
+          ? "ચાલો આ વિષયને સુધારીએ! તમને આ પ્રકરણમાં થોડી વધુ પ્રેક્ટિસની જરૂર પડી શકે છે."
+          : null,
         whatToStudyNext,
         whatToStudyNextGu,
         detailedAnswers: resultDetails?.studentAnswers.map(sa => {

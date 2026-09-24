@@ -23,5 +23,8 @@
   "gradeExpectation": "Expected Final Grade",
   "persistentWeakAreas": "Persistent Weak Topics",
   "aiRecommendation": "Strategic Guidance",
-  "trendDirection": "Overall Trend"
+  "trendDirection": "Overall Trend",
+  "trendImproving": "Improving",
+  "trendDeclining": "Declining",
+  "trendStable": "Stable"
 }

@@ -1,5 +1,5 @@
 {
-  "appName": "વર્ચ્યુઅલ સ્ટડી આસિસ્ટન્ટ",
+  "appName": "VM જ્ઞાનસેતુ",
   "tagline": "વર્ચ્યુઅલ અભ્યાસ પ્લેટફોર્મ",
   "studentMode": "વિદ્યાર્થી મોડ",
   "teacherMode": "શિક્ષક મોડ",
@@ -30,19 +30,40 @@
   "questions": "પ્રશ્નો",
   "nav": {
     "dashboard": "વિદ્યાર્થી ડેશબોર્ડ",
+    "askQuestion": "પ્રશ્ન પૂછો",
     "subjects": "મારા વિષયો",
     "studyPlan": "અભ્યાસ યોજના",
     "tests": "ટેસ્ટ અને પ્રેક્ટિસ",
     "mistakeBook": "ભૂલ પુસ્તિકા",
     "analytics": "પ્રદર્શન વિશ્લેષણ",
+    "homework": "મારું ગૃહકાર્ય",
+    "homeworkChecking": "ગૃહકાર્ય ચકાસણી",
+    "videoLectures": "વિડિઓ લેક્ચર્સ",
+    "uploadVideoLecture": "વિડિઓ લેક્ચર અપલોડ કરો",
+    "studyMaterials": "અભ્યાસ સાહિત્ય",
+    "teacherStudyMaterials": "અભ્યાસ સાહિત્ય સંચાલન",
     "aiAssistant": "AI અભ્યાસ મદદગાર",
+    "textbookRag": "NCERT / GSEB RAG",
+    "pdfSpeech": "PDF અવાજ વાચક",
+    "textToSpeech": "ટેક્સ્ટ-ટુ-સ્પીચ (અવાજ વાચક)",
     "profile": "પ્રોફાઇલ",
     "teacherDashboard": "શિક્ષક ડેશબોર્ડ",
+    "adminDashboard": "એડમિન ડેશબોર્ડ",
+    "doubtCenter": "શંકા કેન્દ્ર",
+    "settings": "સેટિંગ્સ",
+    "students": "વિદ્યાર્થીઓ",
+    "teachers": "શિક્ષકો",
+    "chapters": "પ્રકરણો",
+    "topics": "મુદ્દાઓ",
+    "users": "વપરાશકર્તાઓ",
+    "studentDoubts": "વિદ્યાર્થી શંકાઓ",
+    "teacherTextbooks": "પાઠ્યપુસ્તક આધાર (RAG)",
     "logout": "લોગ આઉટ"
   },
   "roles": {
     "student": "વિદ્યાર્થી",
-    "teacher": "શિક્ષક / એડમિન"
+    "teacher": "શિક્ષક",
+    "admin": "એડમિન"
   },
   "standards": {
     "standard6": "ધોરણ 6",

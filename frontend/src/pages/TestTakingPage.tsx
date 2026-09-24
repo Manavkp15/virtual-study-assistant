@@ -3,14 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { ActiveTest } from '../types';
 import { useTranslation } from 'react-i18next';
+import { tr, trSubject, trItem } from '../utils/tr';
 import { Clock, Bookmark, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const TestTakingPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation(['tests', 'common']);
-
-  const isGu = i18n.language === 'gu';
 
   const [test, setTest] = useState<ActiveTest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,7 +32,7 @@ export const TestTakingPage: React.FC = () => {
     const fetchTest = async () => {
       try {
         const res = await api.get(`/tests/${id}`, {
-          params: { lang: isGu ? 'gu' : 'en' }
+          params: { lang: i18n.language || 'en' }
         });
         const activeTest: ActiveTest = res.data.test;
         setTest(activeTest);
@@ -141,15 +140,15 @@ export const TestTakingPage: React.FC = () => {
   const answeredCount = Object.keys(selectedAnswers).length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between relative">
       {/* Top Test Header */}
       <header className="h-16 bg-slate-900 border-b border-slate-800 px-8 flex items-center justify-between sticky top-0 z-30">
         <div>
           <h2 className="font-bold text-base text-white">
-            {isGu ? (test.titleGu || test.title) : test.title}
+            {trItem(test.titleGu, test.title)}
           </h2>
           <p className="text-xs text-blue-400">
-            {isGu ? (test.subjectNameGu || test.subjectName) : test.subjectName} • {isGu ? t(`common:difficulty.${test.difficulty}`, test.difficulty) : test.difficulty}
+            {trSubject({ name: test.subjectName, nameGu: test.subjectNameGu })} • {t(`common:difficulty.${test.difficulty}`, test.difficulty)}
           </p>
         </div>
 
@@ -185,7 +184,7 @@ export const TestTakingPage: React.FC = () => {
             </span>
             <div className="flex items-center space-x-3">
               <span className="text-[10px] font-bold uppercase text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg">
-                {isGu ? 'મુદ્દો: ' : 'Topic: '}{isGu ? (currentQ.topicNameGu || currentQ.topicName) : currentQ.topicName}
+                {tr('મુદ્દો: ', 'Topic: ')}{trItem(currentQ.topicNameGu, currentQ.topicName)}
               </span>
               <button
                 onClick={() => toggleMarkForReview(currentQ.id)}
@@ -204,7 +203,7 @@ export const TestTakingPage: React.FC = () => {
           {/* Question Text Card */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
             <h3 className="text-lg font-semibold text-white leading-relaxed">
-              {isGu ? (currentQ.questionTextGu || currentQ.questionText) : currentQ.questionText}
+              {trItem(currentQ.questionTextGu, currentQ.questionText)}
             </h3>
 
             {/* Options List */}
@@ -229,7 +228,7 @@ export const TestTakingPage: React.FC = () => {
                       {optionLabel}
                     </div>
                     <span className="text-sm font-medium">
-                      {isGu ? (opt.optionTextGu || opt.optionText) : opt.optionText}
+                      {trItem(opt.optionTextGu, opt.optionText)}
                     </span>
                   </div>
                 );
@@ -296,7 +295,7 @@ export const TestTakingPage: React.FC = () => {
           <div className="space-y-2 text-[11px] text-slate-400 border-t border-slate-800 pt-4">
             <div className="flex items-center space-x-2">
               <span className="w-3 h-3 rounded-full bg-emerald-500/40 border border-emerald-500" />
-              <span>{isGu ? 'જવાબ આપેલ' : 'Answered'}</span>
+              <span>{tr('જવાબ આપેલ', 'Answered')}</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="w-3 h-3 rounded-full bg-amber-500/40 border border-amber-500" />

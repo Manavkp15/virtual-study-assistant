@@ -1,0 +1,49 @@
+{
+  "myStudyPlan": "मेरी अध्ययन योजना",
+  "todaysPlan": "आज की योजना",
+  "weeklyPlan": "साप्ताहिक योजना",
+  "monthlyPlan": "मासिक योजना",
+  "priority": "प्राथमिकता",
+  "critical": "अति आवश्यक",
+  "high": "उच्च",
+  "medium": "मध्यम",
+  "low": "निम्न",
+  "completed": "पूर्ण",
+  "pending": "लंबित",
+  "missed": "छूटा हुआ",
+  "studyTime": "अध्ययन समय",
+  "examDate": "परीक्षा तिथि",
+  "daysRemaining": "शेष दिन",
+  "targetPercentage": "लक्ष्य प्रतिशत",
+  "generatePlan": "नई 7-दिवसीय योजना बनाएं",
+  "regenerate": "योजना पुनः उत्पन्न करें",
+  "dailyStudyTime": "दैनिक अध्ययन समय",
+  "hoursPerDay": "घंटे/दिन",
+  "day": "दिन",
+  "today": "आज",
+  "overallProgress": "कुल साप्ताहिक प्रगति",
+  "phases": {
+    "learning": "सीखना (Learning)",
+    "practice": "अभ्यास (Practice)",
+    "weaknessRemoval": "कमजोरी निवारण (Weakness Removal)",
+    "finalRevision": "अंतिम पुनरावृत्ति (Final Revision)",
+    "mockTest": "मॉक टेस्ट (Mock Test)"
+  },
+  "phaseDescriptions": {
+    "learning": "अवधारणाओं को समझें और आवश्यक अध्ययन सामग्री पूरी करें।",
+    "practice": "अभ्यास प्रश्नों को हल करके अपनी समझ को मजबूत करें।",
+    "weaknessRemoval": "उन विषयों पर ध्यान केंद्रित करें जहाँ प्रदर्शन कमजोर रहा है।",
+    "finalRevision": "परीक्षा से पहले महत्वपूर्ण अवधारणाओं, सूत्रों और नोट्स की समीक्षा करें।",
+    "mockTest": "अपनी समग्र तैयारी का आकलन करने के लिए पूर्ण परीक्षा दें।"
+  },
+  "activities": {
+    "conceptReview": "📖 अवधारणा और सिद्धांत समीक्षा",
+    "videoLecture": "🎥 वीडियो पाठ देखें",
+    "practiceQuestions": "✍️ अभ्यास प्रश्न हल करें",
+    "weaknessRemediation": "🎯 कमजोर टॉपिक सुधार",
+    "formulaPractice": "📐 सूत्र और प्रमेय अभ्यास",
+    "mockAssessment": "⏱️ समयबद्ध मॉक मूल्यांकन"
+  },
+  "markComplete": "पूर्ण मार्क करें",
+  "planGeneratedSuccess": "7-दिवसीय एआई अध्ययन योजना सफलतापूर्वक तैयार की गई!"
+}

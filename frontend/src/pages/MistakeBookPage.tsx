@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { MistakeEntry } from '../types';
 import { useTranslation } from 'react-i18next';
+import { tr, trSubject, trItem } from '../utils/tr';
 import { AlertTriangle, CheckCircle2, Search } from 'lucide-react';
 
 export const MistakeBookPage: React.FC = () => {
@@ -11,13 +12,11 @@ export const MistakeBookPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
 
-  const isGu = i18n.language === 'gu';
-
   useEffect(() => {
     const fetchMistakes = async () => {
       try {
         const res = await api.get('/mistakes', {
-          params: { lang: isGu ? 'gu' : 'en' }
+          params: { lang: i18n.language || 'en' }
         });
         setMistakes(res.data.mistakes || []);
       } catch (err) {
@@ -53,9 +52,9 @@ export const MistakeBookPage: React.FC = () => {
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const qText = (isGu ? (m.questionTextGu || m.questionText) : m.questionText).toLowerCase();
-      const tName = (isGu ? (m.topicNameGu || m.topicName) : m.topicName).toLowerCase();
-      const sName = (isGu ? (m.subjectNameGu || m.subjectName) : m.subjectName).toLowerCase();
+      const qText = trItem(m.questionTextGu, m.questionText).toLowerCase();
+      const tName = trItem(m.topicNameGu, m.topicName).toLowerCase();
+      const sName = trSubject({ name: m.subjectName, nameGu: m.subjectNameGu }).toLowerCase();
       return qText.includes(q) || tName.includes(q) || sName.includes(q);
     }
     return true;
@@ -83,7 +82,7 @@ export const MistakeBookPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isGu ? 'પ્રશ્ન અથવા વિષય શોધો...' : 'Search question or topic...'}
+              placeholder={tr('પ્રશ્ન અથવા વિષય શોધો...', 'Search question or topic...')}
               className="pl-9 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 w-48"
             />
           </div>
@@ -104,14 +103,14 @@ export const MistakeBookPage: React.FC = () => {
       {/* Mistake Entries List */}
       <div className="space-y-4">
         {filteredMistakes.length === 0 ? (
-          <div className="p-12 bg-slate-900 border border-slate-800 rounded-3xl text-center text-slate-400 text-xs">
-            {isGu ? '🎉 તમારા ફિલ્ટર સાથે મેળ ખાતી કોઈ ભૂલો મળી નથી!' : '🎉 No mistake entries found matching your filter!'}
+          <div className="p-12 bg-slate-900 border border-slate-800 rounded-2xl text-center text-slate-400 text-xs">
+            {tr('🎉 તમારા ફિલ્ટર સાથે મેળ ખાતી કોઈ ભૂલો મળી નથી!', '🎉 No mistake entries found matching your filter!')}
           </div>
         ) : (
           filteredMistakes.map((m) => (
             <div
               key={m.id}
-              className={`bg-slate-900 border rounded-3xl p-6 shadow-xl space-y-4 transition-all ${
+              className={`bg-slate-900 border rounded-2xl p-6 shadow-sm space-y-4 transition-all ${
                 m.isRepeatedMistake
                   ? 'border-red-500/40 bg-red-950/10'
                   : 'border-slate-800'
@@ -120,12 +119,12 @@ export const MistakeBookPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
                 <div className="flex items-center space-x-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    {isGu ? (m.subjectNameGu || m.subjectName) : m.subjectName} → {isGu ? (m.topicNameGu || m.topicName) : m.topicName}
+                    {trSubject({ name: m.subjectName, nameGu: m.subjectNameGu })} → {trItem(m.topicNameGu, m.topicName)}
                   </span>
                   {m.isRepeatedMistake && (
                     <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg flex items-center space-x-1">
                       <AlertTriangle className="w-3 h-3" />
-                      <span>{t('repeatedMistakes')} ({m.incorrectCount}{isGu ? ' વખત' : 'x'})</span>
+                      <span>{t('repeatedMistakes')} ({m.incorrectCount}{tr(' વખત', 'x')})</span>
                     </span>
                   )}
                 </div>
@@ -148,7 +147,7 @@ export const MistakeBookPage: React.FC = () => {
 
               {/* Question Text */}
               <h3 className="font-semibold text-base text-white">
-                {isGu ? (m.questionTextGu || m.questionText) : m.questionText}
+                {trItem(m.questionTextGu, m.questionText)}
               </h3>
 
               {/* Answer comparison */}
@@ -156,13 +155,13 @@ export const MistakeBookPage: React.FC = () => {
                 <div>
                   <span className="text-slate-400 font-medium">{t('yourAnswer')}: </span>
                   <span className="font-bold text-red-400">
-                    {isGu ? (m.studentAnswerGu || m.studentAnswer) : m.studentAnswer}
+                    {trItem(m.studentAnswerGu, m.studentAnswer)}
                   </span>
                 </div>
                 <div>
                   <span className="text-slate-400 font-medium">{t('correctAnswer')}: </span>
                   <span className="font-bold text-emerald-400">
-                    {isGu ? (m.correctAnswerGu || m.correctAnswer) : m.correctAnswer}
+                    {trItem(m.correctAnswerGu, m.correctAnswer)}
                   </span>
                 </div>
               </div>
@@ -171,12 +170,12 @@ export const MistakeBookPage: React.FC = () => {
               {(m.explanationGu || m.explanation) && (
                 <div className="text-xs text-slate-300 bg-slate-800/20 p-3 rounded-xl border border-slate-800">
                   <strong className="text-blue-400">{t('solutionExplanation')}: </strong>
-                  {isGu ? (m.explanationGu || m.explanation) : m.explanation}
+                  {trItem(m.explanationGu, m.explanation)}
                 </div>
               )}
 
               <p className="text-xs text-amber-400 font-medium italic">
-                "{isGu ? (m.recommendationGu || m.recommendation) : m.recommendation}"
+                "{trItem(m.recommendationGu, m.recommendation)}"
               </p>
             </div>
           ))

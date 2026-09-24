@@ -12,7 +12,7 @@ export const getDashboard = async (req: AuthenticatedRequest, res: Response) => 
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const lang = (req.query.lang as string) || (req.headers['accept-language']?.includes('gu') ? 'gu' : 'en');
+    const lang = (req.query.lang as string) || (req.headers['accept-language']?.includes('gu') ? 'gu' : (req.headers['accept-language']?.includes('hi') ? 'hi' : 'en'));
     const analytics = await calculateStudentAnalytics(userId);
     const weakData = await detectWeakTopics(userId);
     const prediction = await predictPerformance(userId);
@@ -182,25 +182,40 @@ export const getSubjectsList = async (req: AuthenticatedRequest, res: Response) 
     const userId = req.user?.id;
     const profile = userId ? await prisma.studentProfile.findUnique({ where: { userId } }) : null;
     const userRole = req.user?.role;
+    const { standard } = req.query;
 
-    // Standard-wise filtering for students
+    // For students, strictly filter by their existing standard only
     const where: any = {};
-    if (userRole === 'STUDENT' && profile?.standard) {
-      where.standard = profile.standard;
+    if (userRole === 'STUDENT') {
+      where.standard = profile?.standard || 'Standard 8';
+    } else if (standard && standard !== 'ALL') {
+      where.standard = String(standard);
     }
 
-    const subjects = await prisma.subject.findMany({
-      where,
-      include: {
-        chapters: {
-          include: {
-            topics: true
+    const [subjects, distinctStandards] = await Promise.all([
+      prisma.subject.findMany({
+        where,
+        include: {
+          chapters: {
+            include: {
+              topics: true
+            }
           }
         }
-      }
-    });
+      }),
+      prisma.subject.findMany({
+        select: { standard: true },
+        distinct: ['standard']
+      })
+    ]);
 
-    res.json({ subjects, studentStandard: profile?.standard || 'Standard 8' });
+    const existingStandards = distinctStandards.map(s => s.standard).filter(Boolean);
+
+    res.json({
+      subjects,
+      studentStandard: profile?.standard || 'Standard 8',
+      existingStandards
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch subjects list' });
   }

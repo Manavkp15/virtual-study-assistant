@@ -1,0 +1,66 @@
+{
+  "title": "शिक्षक और एडमिन नियंत्रण केंद्र",
+  "subtitle": "पाठ्यक्रम प्रबंधन, लाइव टेलीमेट्री और विद्यार्थी प्रगति निगरानी",
+  "tabs": {
+    "overview": "अवलोकन और टेलीमेट्री",
+    "subjects": "विषय और अध्याय",
+    "questions": "प्रश्न बैंक",
+    "tests": "मूल्यांकन परीक्षाएं",
+    "students": "विद्यार्थी रोस्टर"
+  },
+  "metrics": {
+    "totalStudents": "कुल विद्यार्थी",
+    "activeSubjects": "सक्रिय विषय",
+    "bankQuestions": "बैंक में प्रश्न",
+    "activeTests": "सक्रिय परीक्षाएं",
+    "totalAttempts": "कुल प्रयास"
+  },
+  "subjects": {
+    "addSubject": "नया विषय जोड़ें",
+    "editSubject": "विषय संपादित करें",
+    "subjectNameEn": "विषय का नाम (अंग्रेज़ी)",
+    "subjectNameGu": "विषय का नाम (गुजराती)",
+    "code": "विषय कोड",
+    "standard": "कक्षा / मानक",
+    "descriptionEn": "विवरण (अंग्रेज़ी)",
+    "descriptionGu": "विवरण (गुजराती)",
+    "chaptersCount": "अध्याय",
+    "topicsCount": "टॉपिक्स",
+    "actions": "क्रियाएं"
+  },
+  "questions": {
+    "addQuestion": "नया प्रश्न जोड़ें",
+    "editQuestion": "प्रश्न संपादित करें",
+    "subject": "विषय",
+    "topic": "टॉपिक",
+    "difficulty": "कठिनाई स्तर",
+    "questionEn": "प्रश्न पाठ (अंग्रेज़ी)",
+    "questionGu": "प्रश्न पाठ (गुजराती)",
+    "explanationEn": "व्याख्या (अंग्रेज़ी)",
+    "explanationGu": "व्याख्या (गुजराती)",
+    "options": "विकल्प",
+    "optionEn": "विकल्प (अंग्रेज़ी)",
+    "optionGu": "विकल्प (गुजराती)",
+    "correct": "सही",
+    "addOption": "विकल्प जोड़ें"
+  },
+  "tests": {
+    "createTest": "नई परीक्षा बनाएं",
+    "testTitleEn": "परीक्षा शीर्षक (अंग्रेज़ी)",
+    "testTitleGu": "परीक्षा शीर्षक (गुजराती)",
+    "testDescEn": "परीक्षा विवरण (अंग्रेज़ी)",
+    "testDescGu": "परीक्षा विवरण (गुजराती)",
+    "durationMinutes": "अवधि (मिनट)",
+    "selectQuestions": "प्रश्न चुनें",
+    "assignedQuestions": "आवंटित प्रश्न"
+  },
+  "roster": {
+    "studentName": "विद्यार्थी का नाम",
+    "email": "ईमेल",
+    "standard": "कक्षा",
+    "streak": "निरंतरता",
+    "testsAttempted": "दी गई परीक्षाएं",
+    "avgScore": "औसत स्कोर",
+    "actions": "क्रियाएं"
+  }
+}

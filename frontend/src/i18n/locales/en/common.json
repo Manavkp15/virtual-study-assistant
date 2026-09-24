@@ -1,5 +1,5 @@
 {
-  "appName": "Virtual Study Assistant",
+  "appName": "VM જ્ઞાનસેતુ",
   "tagline": "Virtual Study Platform",
   "studentMode": "STUDENT Mode",
   "teacherMode": "TEACHER Mode",
@@ -30,19 +30,40 @@
   "questions": "questions",
   "nav": {
     "dashboard": "Student Dashboard",
+    "askQuestion": "Ask Question",
     "subjects": "My Subjects",
     "studyPlan": "Study Plan",
     "tests": "Tests & Practice",
     "mistakeBook": "Mistake Book",
     "analytics": "Analytics",
+    "homework": "Homework",
+    "homeworkChecking": "Homework Checking",
+    "videoLectures": "Video Lectures",
+    "uploadVideoLecture": "Upload Video Lecture",
+    "studyMaterials": "Study Materials",
+    "teacherStudyMaterials": "Study Materials",
     "aiAssistant": "AI Study Assistant",
+    "textbookRag": "NCERT / GSEB RAG",
+    "pdfSpeech": "PDF Voice Reader",
+    "textToSpeech": "Text to Speech (Voice Reader)",
     "profile": "Profile",
     "teacherDashboard": "Teacher Dashboard",
+    "adminDashboard": "Admin Dashboard",
+    "doubtCenter": "Doubt Center",
+    "settings": "Settings",
+    "students": "Students",
+    "teachers": "Teachers",
+    "chapters": "Chapters",
+    "topics": "Topics",
+    "users": "Users",
+    "studentDoubts": "Student Doubts",
+    "teacherTextbooks": "Textbook Knowledge Base",
     "logout": "Log Out"
   },
   "roles": {
     "student": "Student",
-    "teacher": "Teacher / Admin"
+    "teacher": "Teacher",
+    "admin": "Admin"
   },
   "standards": {
     "standard6": "Standard 6",

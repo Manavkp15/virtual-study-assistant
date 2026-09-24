@@ -6,4 +6,366 @@
   body {
     @apply bg-slate-950 text-slate-100 antialiased font-sans;
   }
+
+  body.theme-white {
+    @apply bg-slate-50 text-slate-900;
+  }
+
+  ::selection {
+    background-color: #2563eb;
+    color: #ffffff;
+  }
 }
+
+/* ==========================================================================
+   WHITE / LIGHT THEME SYSTEM OVERRIDES
+   Transforms dark slate UI into a clean, modern, high-contrast white theme
+   ========================================================================== */
+
+.theme-white {
+  color-scheme: light;
+}
+
+/* 1. Main Backgrounds */
+.theme-white body,
+.theme-white.bg-slate-950,
+.theme-white .bg-slate-950 {
+  background-color: #f8fafc !important; /* slate-50 */
+}
+
+.theme-white .bg-slate-950\/95,
+.theme-white .bg-slate-950\/90,
+.theme-white .bg-slate-950\/80,
+.theme-white .bg-slate-950\/60 {
+  background-color: rgba(248, 250, 252, 0.95) !important;
+}
+
+/* 2. Card Surfaces & Containers */
+.theme-white .bg-slate-900,
+.theme-white.bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+.theme-white .bg-slate-900\/90,
+.theme-white .bg-slate-900\/80 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.theme-white .bg-slate-900\/70,
+.theme-white .bg-slate-900\/60,
+.theme-white .bg-slate-900\/50,
+.theme-white .bg-slate-900\/40 {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* 3. Secondary Surfaces / Subtle Cards / Inputs */
+.theme-white .bg-slate-800,
+.theme-white.bg-slate-800 {
+  background-color: #f1f5f9 !important; /* slate-100 */
+}
+
+.theme-white .bg-slate-800\/90,
+.theme-white .bg-slate-800\/80,
+.theme-white .bg-slate-800\/70 {
+  background-color: #f1f5f9 !important;
+}
+
+.theme-white .bg-slate-800\/60,
+.theme-white .bg-slate-800\/50,
+.theme-white .bg-slate-800\/40 {
+  background-color: #f8fafc !important;
+}
+
+.theme-white .bg-slate-700,
+.theme-white.bg-slate-700 {
+  background-color: #e2e8f0 !important; /* slate-200 */
+}
+
+/* Hover surfaces */
+.theme-white .hover\:bg-slate-800:hover,
+.theme-white .hover\:bg-slate-800\/80:hover,
+.theme-white .hover\:bg-slate-800\/60:hover,
+.theme-white .hover\:bg-slate-800\/50:hover {
+  background-color: #e2e8f0 !important;
+}
+
+.theme-white .hover\:bg-slate-900:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* 4. Borders */
+.theme-white .border-slate-800,
+.theme-white .border-slate-800\/80,
+.theme-white .border-slate-800\/60,
+.theme-white .border-slate-700,
+.theme-white .border-slate-700\/80,
+.theme-white .border-slate-700\/70,
+.theme-white .border-slate-700\/60 {
+  border-color: #e2e8f0 !important; /* slate-200 */
+}
+
+.theme-white .hover\:border-slate-700:hover,
+.theme-white .hover\:border-slate-600:hover {
+  border-color: #cbd5e1 !important;
+}
+
+/* 5. Typography */
+.theme-white .text-slate-100 {
+  color: #0f172a !important; /* slate-900 */
+}
+
+.theme-white .text-slate-200 {
+  color: #1e293b !important; /* slate-800 */
+}
+
+.theme-white .text-slate-300 {
+  color: #334155 !important; /* slate-700 */
+}
+
+.theme-white .text-slate-400 {
+  color: #64748b !important; /* slate-500 */
+}
+
+.theme-white .text-slate-500 {
+  color: #94a3b8 !important; /* slate-400 */
+}
+
+.theme-white .hover\:text-white:hover {
+  color: #0f172a !important;
+}
+
+/* Headings and labels that had text-white */
+.theme-white h1.text-white,
+.theme-white h2.text-white,
+.theme-white h3.text-white,
+.theme-white h4.text-white,
+.theme-white h5.text-white,
+.theme-white h6.text-white,
+.theme-white p.text-white:not([class*="bg-blue"]):not([class*="bg-purple"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-gradient"]):not([class*="bg-brand"]):not([class*="badge"]),
+.theme-white span.text-white:not([class*="bg-blue"]):not([class*="bg-purple"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-indigo"]):not([class*="bg-gradient"]):not([class*="bg-brand"]):not([class*="rounded-full"]):not([class*="rounded-md"]):not([class*="badge"]):not([class*="shadow-md"]):not([class*="shadow-lg"]),
+.theme-white td.text-white,
+.theme-white th.text-white,
+.theme-white label.text-white,
+.theme-white .font-bold.text-white:not([class*="bg-blue"]):not([class*="bg-purple"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-indigo"]):not([class*="bg-gradient"]):not([class*="bg-brand"]):not([class*="rounded-full"]):not([class*="rounded-md"]),
+.theme-white .font-extrabold.text-white:not([class*="bg-blue"]):not([class*="bg-purple"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-indigo"]):not([class*="bg-gradient"]):not([class*="bg-brand"]):not([class*="rounded-full"]):not([class*="rounded-md"]) {
+  color: #0f172a !important;
+}
+
+/* 6. Form Inputs & Textareas */
+.theme-white input:not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]),
+.theme-white textarea,
+.theme-white select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.theme-white input:focus,
+.theme-white textarea:focus,
+.theme-white select:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+.theme-white input::placeholder,
+.theme-white textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* 7. Shadows & Cards */
+.theme-white .shadow-2xl,
+.theme-white .shadow-xl {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.theme-white .shadow-lg {
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 8. Dark Gradient Banners Transformed to Crisp Modern Banners */
+.theme-white .from-indigo-950\/70,
+.theme-white .from-indigo-950\/60,
+.theme-white .from-indigo-950\/40,
+.theme-white .from-blue-950\/60,
+.theme-white .from-blue-950\/40,
+.theme-white .from-purple-950\/60,
+.theme-white .from-purple-950\/40,
+.theme-white .from-emerald-950\/60,
+.theme-white .from-emerald-900\/40 {
+  --tw-gradient-from: #eff6ff var(--tw-gradient-from-position) !important;
+}
+
+.theme-white .to-indigo-950\/60,
+.theme-white .to-indigo-950\/40,
+.theme-white .to-purple-950\/70,
+.theme-white .to-purple-950\/60,
+.theme-white .to-purple-950\/40,
+.theme-white .to-teal-950\/60,
+.theme-white .to-blue-900\/40 {
+  --tw-gradient-to: #f5f3ff var(--tw-gradient-to-position) !important;
+}
+
+.theme-white .via-slate-900,
+.theme-white .via-teal-900\/30 {
+  --tw-gradient-stops: var(--tw-gradient-from), #ffffff var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+/* 9. Dropdowns & Modals */
+.theme-white .bg-slate-900 option,
+.theme-white .bg-slate-800 option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* 10. Sidebar & Navbar */
+.theme-white aside {
+  background-color: #ffffff !important;
+  border-right-color: #e2e8f0 !important;
+}
+
+.theme-white aside .text-slate-400 {
+  color: #475569 !important;
+}
+
+.theme-white aside .text-slate-400:hover {
+  color: #0f172a !important;
+  background-color: #f1f5f9 !important;
+}
+
+.theme-white header {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+.theme-white header .text-white {
+  color: #0f172a !important;
+}
+
+/* 11. Background Image Overlays */
+.auth-bg-overlay {
+  background: radial-gradient(circle at center, rgba(2, 6, 23, 0.4) 0%, rgba(2, 6, 23, 0.72) 100%);
+}
+
+.theme-white .auth-bg-overlay {
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.72) 100%) !important;
+}
+
+.theme-white .banner-bg-overlay {
+  background: linear-gradient(to right, rgba(239, 246, 255, 0.9), rgba(245, 243, 255, 0.85)) !important;
+}
+
+/* 12. Distraction-Free Study UI Components */
+.study-card {
+  background-color: rgba(15, 23, 42, 0.9);
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.theme-white .study-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Focus and Reduced Motion Optimization */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   CARET / FOCUS MANAGEMENT SYSTEM
+   Prevents unwanted blinking text cursors/carets on non-editable elements
+   (cards, buttons, headings, dashboard sections, labels, nav items)
+   while strictly preserving normal blinking caret and typing in all editable controls.
+   ========================================================================== */
+
+/* 
+ * Non-editable UI elements must NEVER display a blinking text caret.
+ * This covers buttons, cards, headings, dashboard sections, labels, navigation items,
+ * tables, chips, and generic containers.
+ */
+body,
+header,
+nav,
+aside,
+main,
+footer,
+section,
+article,
+div,
+p,
+span,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+button,
+a,
+label,
+table,
+thead,
+tbody,
+tr,
+th,
+td,
+ul,
+ol,
+li,
+svg,
+img,
+[role="button"],
+[role="tab"],
+[role="menuitem"],
+[role="dialog"],
+.card,
+.study-card {
+  caret-color: transparent;
+}
+
+/* 
+ * Legitimate input fields, textareas, and editable controls MUST show a normal blinking caret.
+ * Typing functionality, selection, and keyboard navigation remain 100% normal.
+ */
+input,
+textarea,
+select,
+[contenteditable="true"],
+[contenteditable=""],
+[contenteditable="plaintext-only"] {
+  caret-color: auto !important;
+}
+
+/* Focused state for inputs and textareas */
+input:focus,
+textarea:focus,
+select:focus,
+[contenteditable="true"]:focus,
+[contenteditable=""]:focus,
+[contenteditable="plaintext-only"]:focus {
+  caret-color: auto !important;
+}
+
+/* White Theme Caret Contrast */
+.theme-white input,
+.theme-white textarea,
+.theme-white select,
+.theme-white [contenteditable="true"] {
+  caret-color: #0f172a !important;
+}
+
+.theme-white input:focus,
+.theme-white textarea:focus,
+.theme-white select:focus,
+.theme-white [contenteditable="true"]:focus {
+  caret-color: #0f172a !important;
+}
+
+

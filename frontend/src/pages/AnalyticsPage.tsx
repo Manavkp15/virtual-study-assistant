@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useTranslation } from 'react-i18next';
+import { tr, trSubject, trItem } from '../utils/tr';
 import {
   BarChart3,
   TrendingUp,
   Target,
   PieChart as PieIcon,
-  Zap
+  Zap,
+  FileSpreadsheet,
+  Download
 } from 'lucide-react';
+import { exportStudentAnalyticsExcel } from '../utils/excelExport';
 import {
   ResponsiveContainer,
   LineChart,
@@ -28,19 +32,23 @@ export const AnalyticsPage: React.FC = () => {
   const { t, i18n } = useTranslation(['analytics', 'common']);
   const [analytics, setAnalytics] = useState<any | null>(null);
   const [prediction, setPrediction] = useState<any | null>(null);
+  const [dashboardData, setDashboardData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
   const isGu = i18n.language === 'gu';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [analRes, predRes] = await Promise.all([
-          api.get('/student/performance', { params: { lang: isGu ? 'gu' : 'en' } }),
-          api.get('/student/predictions', { params: { lang: isGu ? 'gu' : 'en' } })
+        const [analRes, predRes, dashRes] = await Promise.all([
+          api.get('/student/performance', { params: { lang: i18n.language || 'en' } }),
+          api.get('/student/predictions', { params: { lang: i18n.language || 'en' } }),
+          api.get('/student/dashboard', { params: { lang: i18n.language || 'en' } }).catch(() => ({ data: null }))
         ]);
         setAnalytics(analRes.data);
         setPrediction(predRes.data);
+        setDashboardData(dashRes.data);
       } catch (err) {
         console.error('Failed to load analytics:', err);
       } finally {
@@ -49,6 +57,25 @@ export const AnalyticsPage: React.FC = () => {
     };
     fetchData();
   }, [i18n.language]);
+
+  const handleExportExcel = () => {
+    if (!analytics) return;
+    setIsExporting(true);
+    try {
+      exportStudentAnalyticsExcel({
+        analytics,
+        prediction,
+        weakTopics: dashboardData?.weakTopics || [],
+        recentTestResults: dashboardData?.recentTestResults || analytics.recentTrends || [],
+        studentProfile: dashboardData?.profile || null,
+        lang: i18n.language || 'en'
+      });
+    } catch (err) {
+      console.error('Failed to export Excel report:', err);
+    } finally {
+      setTimeout(() => setIsExporting(false), 600);
+    }
+  };
 
   if (loading || !analytics) {
     return (
@@ -67,36 +94,64 @@ export const AnalyticsPage: React.FC = () => {
 
   const subjectPerformanceData = (analytics.subjectPerformance || []).map((sp: any) => ({
     ...sp,
-    displayName: isGu ? (sp.subjectNameGu || sp.subjectName) : sp.subjectName
+    displayName: trSubject(sp)
   }));
 
   const difficultyPerformanceData = (analytics.difficultyPerformance || []).map((dp: any) => ({
     ...dp,
-    displayName: isGu ? t(`common:difficulty.${dp.difficulty}`, dp.difficulty) : dp.difficulty
+    displayName: t(`common:difficulty.${dp.difficulty}`, dp.difficulty)
   }));
 
-  const getTrendLabel = (dir: string) => {
-    if (isGu) {
-      if (dir === 'IMPROVING') return 'સુધરી રહ્યો છે';
-      if (dir === 'DECLINING') return 'ઘટી રહ્યો છે';
-      return 'સ્થિર';
+  const getTrendLabel = (dir?: string, dirGu?: string) => {
+    const raw = (dir || '').toUpperCase();
+    const isImproving = raw === 'IMPROVING' || dirGu === 'સુધરી રહ્યું છે' || dirGu === 'સુધરી રહ્યો છે';
+    const isDeclining = raw === 'DECLINING' || dirGu === 'ઘટી રહ્યું છે' || dirGu === 'ઘટી રહ્યો છે';
+
+    if (i18n.language === 'gu') {
+      if (isImproving) return t('trendImproving', 'સુધરી રહ્યો છે');
+      if (isDeclining) return t('trendDeclining', 'ઘટી રહ્યો છે');
+      return t('trendStable', 'સ્થિર');
     }
-    return dir;
+
+    if (i18n.language === 'hi') {
+      if (isImproving) return t('trendImproving', 'सुधर रहा है');
+      if (isDeclining) return t('trendDeclining', 'घट रहा है');
+      return t('trendStable', 'स्थिर');
+    }
+
+    if (isImproving) return t('trendImproving', 'Improving');
+    if (isDeclining) return t('trendDeclining', 'Declining');
+    return t('trendStable', 'Stable');
   };
 
   return (
     <div className="space-y-8 pb-12">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center space-x-3">
-          <BarChart3 className="w-7 h-7 text-blue-400" />
-          <span>{t('performanceAnalytics')}</span>
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          {isGu
-            ? 'આંકડાકીય ટેલિમેટ્રી, ચોકસાઈ ટ્રેન્ડ્સ અને ગુણ પૂર્વાનુમાન'
-            : 'Statistical telemetry, accuracy trends, and linear regression score forecasts'}
-        </p>
+      {/* Header with Export Excel CTA */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center space-x-3">
+            <BarChart3 className="w-7 h-7 text-blue-400" />
+            <span>{t('performanceAnalytics')}</span>
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            {tr('આંકડાકીય ટેલિમેટ્રી, ચોકસાઈ ટ્રેન્ડ્સ અને ગુણ પૂર્વાનુમાન', 'Statistical telemetry, accuracy trends, and linear regression score forecasts', 'सांख्यिकीय टेलीमेट्री, सटीकता रुझान और स्कोर पूर्वानुमान')}
+          </p>
+        </div>
+
+        <button
+          onClick={handleExportExcel}
+          disabled={isExporting}
+          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition-all shrink-0 cursor-pointer"
+          title={tr('સંપૂર્ણ એનાલિટિક્સ એક્સેલ રિપોર્ટ ડાઉનલોડ કરો', 'Download Comprehensive Excel Analytics Report', 'विस्तृत एनालिटिक्स एक्सेल रिपोर्ट डाउनलोड करें')}
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          <span>
+            {isExporting
+              ? tr('રિપોર્ટ તૈયાર થઈ રહ્યો છે...', 'Generating Report...', 'रिपोर्ट तैयार हो रही है...')
+              : tr('એક્સેલ રિપોર્ટ ડાઉનલોડ કરો', 'Export Excel Report', 'एक्सेल रिपोर्ट डाउनलोड करें')}
+          </span>
+          <Download className="w-3.5 h-3.5 ml-1 opacity-80" />
+        </button>
       </div>
 
       {/* Top Prediction Summary Banner */}
@@ -106,36 +161,36 @@ export const AnalyticsPage: React.FC = () => {
             <div className="flex items-center space-x-2 text-purple-400 text-xs font-bold uppercase tracking-wider">
               <Zap className="w-4 h-4" />
               <span>
-                {isGu ? 'આંકડાકીય પ્રદર્શન પૂર્વાનુમાન' : 'Statistical Performance Prediction'}
+                {tr('આંકડાકીય પ્રદર્શન પૂર્વાનુમાન', 'Statistical Performance Prediction', 'सांख्यिकीय प्रदर्शन पूर्वानुमान')}
               </span>
             </div>
             <span className="text-xs font-bold text-slate-300 px-3 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full">
-              {isGu ? 'વિશ્વાસ સ્કોર:' : 'Confidence:'} {prediction.confidenceScore}%
+              {tr('વિશ્વાસ સ્કોર:', 'Confidence:', 'विश्वास स्कोर:')} {prediction.confidenceScore}%
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
             <div className="space-y-1">
               <span className="text-xs text-slate-400 font-semibold">
-                {isGu ? 'આગામી ટેસ્ટના અપેક્ષિત ટકા' : 'Forecasted Next Test Percentage'}
+                {tr('આગામી ટેસ્ટના અપેક્ષિત ટકા', 'Forecasted Next Test Percentage', 'आगामी परीक्षा का अपेक्षित प्रतिशत')}
               </span>
               <p className="text-3xl font-extrabold text-white">{prediction.predictedNextScore}%</p>
             </div>
             <div className="space-y-1">
               <span className="text-xs text-slate-400 font-semibold">{t('performanceTrend')}</span>
               <p className={`text-xl font-bold ${
-                prediction.trendDirection === 'IMPROVING' ? 'text-emerald-400' :
-                prediction.trendDirection === 'DECLINING' ? 'text-red-400' : 'text-blue-400'
+                prediction.trendDirection === 'IMPROVING' || prediction.trendDirectionGu === 'સુધરી રહ્યું છે' || prediction.trendDirectionGu === 'સુધરી રહ્યો છે' ? 'text-emerald-400' :
+                prediction.trendDirection === 'DECLINING' || prediction.trendDirectionGu === 'ઘટી રહ્યું છે' || prediction.trendDirectionGu === 'ઘટી રહ્યો છે' ? 'text-red-400' : 'text-blue-400'
               }`}>
-                {prediction.trendDirectionGu || getTrendLabel(prediction.trendDirection)}
+                {getTrendLabel(prediction.trendDirection, prediction.trendDirectionGu)}
               </p>
             </div>
             <div className="space-y-1">
               <span className="text-xs text-slate-400 font-semibold">
-                {isGu ? 'ભલામણ સારાંશ' : 'Recommendation Summary'}
+                {tr('ભલામણ સારાંશ', 'Recommendation Summary', 'अनुशंसा सारांश')}
               </span>
               <p className="text-xs text-slate-300 italic">
-                {isGu ? (prediction.recommendationSummaryGu || prediction.recommendationSummary) : prediction.recommendationSummary}
+                {trItem(prediction.recommendationSummaryGu, prediction.recommendationSummary)}
               </p>
             </div>
           </div>
