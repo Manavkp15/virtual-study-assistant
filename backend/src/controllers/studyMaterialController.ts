@@ -1,8 +1,9 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { prisma } from '../database/prisma';
-import { removeMaterialFile, getSafeMaterialFilePath } from '../services/fileStorage';
+import { removeMaterialFile, getSafeMaterialFilePath, STUDY_MATERIALS_UPLOAD_DIR, persistFile, ensureFileOnDisk, deletePersistedFile } from '../services/fileStorage';
 import { detectWeakTopics } from '../algorithms/weakTopicDetector';
+import { getTeacherAssignedSubjects } from '../utils/subjectConstants';
 import fs from 'fs';
 
 /**
@@ -400,9 +401,9 @@ export const streamMaterialPdf = async (req: AuthenticatedRequest, res: Response
       return res.status(403).json({ error: 'Unauthorized to view unpublished material' });
     }
 
-    const safePath = getSafeMaterialFilePath(material.pdfFilePath);
+    const safePath = (await ensureFileOnDisk(material.pdfFilePath, STUDY_MATERIALS_UPLOAD_DIR)) || getSafeMaterialFilePath(material.pdfFilePath);
     if (!safePath || !fs.existsSync(safePath)) {
-      return res.status(404).json({ error: 'PDF file not found on disk' });
+      return res.status(404).json({ error: 'PDF file not found on server' });
     }
 
     // Log PDF view event for student
@@ -456,9 +457,9 @@ export const downloadMaterialPdf = async (req: AuthenticatedRequest, res: Respon
       return res.status(403).json({ error: 'Unauthorized to download unpublished material' });
     }
 
-    const safePath = getSafeMaterialFilePath(material.pdfFilePath);
+    const safePath = (await ensureFileOnDisk(material.pdfFilePath, STUDY_MATERIALS_UPLOAD_DIR)) || getSafeMaterialFilePath(material.pdfFilePath);
     if (!safePath || !fs.existsSync(safePath)) {
-      return res.status(404).json({ error: 'PDF file not found on disk' });
+      return res.status(404).json({ error: 'PDF file not found on server' });
     }
 
     // Log download event
@@ -572,7 +573,19 @@ export const getTeacherMaterialOverview = async (req: AuthenticatedRequest, res:
     const userRole = req.user?.role;
     if (!teacherId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const where: any = userRole === 'ADMIN' ? {} : { teacherId };
+    const isTeacher = userRole === 'TEACHER';
+    let assignedSubjectsList: any[] = [];
+    const where: any = {};
+
+    if (isTeacher) {
+      const assigned = await getTeacherAssignedSubjects(prisma, teacherId);
+      const subjectIds = assigned.map(s => s.id);
+      where.teacherId = teacherId;
+      where.subjectId = { in: subjectIds };
+      assignedSubjectsList = assigned;
+    } else {
+      assignedSubjectsList = await prisma.subject.findMany({ select: { id: true, name: true, nameGu: true } });
+    }
 
     const [
       materials,
@@ -588,7 +601,7 @@ export const getTeacherMaterialOverview = async (req: AuthenticatedRequest, res:
         }
       }),
       prisma.user.count({ where: { role: 'STUDENT' } }),
-      prisma.subject.findMany({ select: { id: true, name: true, nameGu: true } })
+      Promise.resolve(assignedSubjectsList)
     ]);
 
     let publishedCount = 0;
@@ -668,13 +681,29 @@ export const getTeacherMaterials = async (req: AuthenticatedRequest, res: Respon
 
     const { standard, subjectId, status, search } = req.query;
 
-    const where: any = userRole === 'ADMIN' ? {} : { teacherId };
+    const isTeacher = userRole === 'TEACHER';
+    const where: any = {};
 
-    if (standard && typeof standard === 'string' && standard !== 'ALL') {
-      where.standard = standard;
-    }
-    if (subjectId && typeof subjectId === 'string' && subjectId !== 'ALL') {
-      where.subjectId = subjectId;
+    if (isTeacher) {
+      where.teacherId = teacherId;
+      const assigned = await getTeacherAssignedSubjects(prisma, teacherId);
+      const assignedSubjectIds = assigned.map(s => s.id);
+
+      if (subjectId && typeof subjectId === 'string' && subjectId !== 'ALL') {
+        if (!assignedSubjectIds.includes(subjectId)) {
+          return res.status(403).json({
+            error: 'You are not authorized to view study materials for this subject.',
+            messageGu: 'તમને આ વિષયની અભ્યાસ સામગ્રી જોવાની મંજૂરી નથી.'
+          });
+        }
+        where.subjectId = subjectId;
+      } else {
+        where.subjectId = { in: assignedSubjectIds };
+      }
+    } else {
+      if (subjectId && typeof subjectId === 'string' && subjectId !== 'ALL') {
+        where.subjectId = subjectId;
+      }
     }
     if (status && typeof status === 'string' && status !== 'ALL') {
       where.status = status;
@@ -741,14 +770,49 @@ export const createStudyMaterial = async (req: AuthenticatedRequest, res: Respon
       status
     } = req.body;
 
-    if (!title || !subjectId) {
+    // REQUIREMENT: Enforce backend verification so teachers can only upload study materials for their assigned subjects
+    let targetSubjectId = subjectId;
+    if (req.user?.role === 'TEACHER') {
+      const assignedSubjects = await getTeacherAssignedSubjects(prisma, teacherId);
+      if (assignedSubjects.length === 0) {
+        if (req.file) removeMaterialFile(req.file.filename);
+        return res.status(403).json({
+          error: 'You do not have any assigned subjects to upload study materials.',
+          messageGu: 'અભ્યાસ સામગ્રી અપલોડ કરવા માટે તમારી પાસે કોઈ વિષય ફાળવેલ નથી.'
+        });
+      }
+
+      const assignedSubjectIds = assignedSubjects.map(s => s.id);
+
+      if (targetSubjectId) {
+        if (!assignedSubjectIds.includes(targetSubjectId)) {
+          if (req.file) removeMaterialFile(req.file.filename);
+          return res.status(403).json({
+            error: 'You are not authorized to upload study materials for this subject.',
+            messageGu: 'તમને આ વિષય માટે અભ્યાસ સામગ્રી અપલોડ કરવાની મંજૂરી નથી.'
+          });
+        }
+      } else {
+        if (assignedSubjects.length === 1) {
+          targetSubjectId = assignedSubjects[0].id;
+        } else {
+          if (req.file) removeMaterialFile(req.file.filename);
+          return res.status(400).json({
+            error: 'Please select a subject from your assigned subjects.',
+            messageGu: 'કૃપા કરીને તમારા સોંપાયેલા વિષયોમાંથી એક વિષય પસંદ કરો.'
+          });
+        }
+      }
+    }
+
+    if (!title || !targetSubjectId) {
       if (req.file) removeMaterialFile(req.file.filename);
       return res.status(400).json({ error: 'Title and Subject are required' });
     }
 
     // Verify subject exists
     const subject = await prisma.subject.findUnique({
-      where: { id: subjectId }
+      where: { id: targetSubjectId }
     });
     if (!subject) {
       if (req.file) removeMaterialFile(req.file.filename);
@@ -777,7 +841,7 @@ export const createStudyMaterial = async (req: AuthenticatedRequest, res: Respon
         titleGu: titleGu?.trim() || null,
         description: description?.trim() || null,
         descriptionGu: descriptionGu?.trim() || null,
-        subjectId,
+        subjectId: targetSubjectId,
         chapterId: chapterId || null,
         topicId: topicId || null,
         standard: standard || 'Standard 8',
@@ -797,6 +861,10 @@ export const createStudyMaterial = async (req: AuthenticatedRequest, res: Respon
         topic: { select: { id: true, name: true, nameGu: true } }
       }
     });
+
+    if (req.file) {
+      await persistFile(req.file.path, req.file.filename, req.file.mimetype, req.file.originalname);
+    }
 
     // Notify relevant students if published immediately
     if (isPublished) {
@@ -868,6 +936,25 @@ export const updateStudyMaterial = async (req: AuthenticatedRequest, res: Respon
       return res.status(403).json({ error: 'Unauthorized to modify this study material' });
     }
 
+    if (userRole === 'TEACHER') {
+      const assigned = await getTeacherAssignedSubjects(prisma, teacherId);
+      const assignedSubjectIds = assigned.map(s => s.id);
+      if (!assignedSubjectIds.includes(material.subjectId)) {
+        if (req.file) removeMaterialFile(req.file.filename);
+        return res.status(403).json({
+          error: 'You are not authorized to update materials for this subject.',
+          messageGu: 'તમને આ વિષય માટે સામગ્રી બદલવાની મંજૂરી નથી.'
+        });
+      }
+      if (req.body.subjectId && !assignedSubjectIds.includes(req.body.subjectId)) {
+        if (req.file) removeMaterialFile(req.file.filename);
+        return res.status(403).json({
+          error: 'You are not authorized to assign materials to this subject.',
+          messageGu: 'તમને આ વિષય માટે સામગ્રી સોંપવાની મંજૂરી નથી.'
+        });
+      }
+    }
+
     const {
       title,
       titleGu,
@@ -910,8 +997,9 @@ export const updateStudyMaterial = async (req: AuthenticatedRequest, res: Respon
     // Handle PDF replacement if a new file was uploaded
     if (req.file) {
       if (material.pdfFilePath) {
-        removeMaterialFile(material.pdfFilePath);
+        await deletePersistedFile(material.pdfFilePath, STUDY_MATERIALS_UPLOAD_DIR);
       }
+      await persistFile(req.file.path, req.file.filename, req.file.mimetype, req.file.originalname);
       dataToUpdate.pdfFilePath = req.file.filename;
       dataToUpdate.pdfFileName = req.file.originalname;
       dataToUpdate.fileSizeBytes = req.file.size;
@@ -1078,9 +1166,9 @@ export const deleteStudyMaterial = async (req: AuthenticatedRequest, res: Respon
       return res.status(403).json({ error: 'Unauthorized to delete this study material' });
     }
 
-    // Safely remove PDF file from disk
+    // Safely remove PDF file from disk and database
     if (material.pdfFilePath) {
-      removeMaterialFile(material.pdfFilePath);
+      await deletePersistedFile(material.pdfFilePath, STUDY_MATERIALS_UPLOAD_DIR);
     }
 
     await prisma.studyMaterial.delete({

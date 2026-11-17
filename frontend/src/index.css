@@ -368,4 +368,51 @@ select:focus,
   caret-color: #0f172a !important;
 }
 
+/* ==========================================================================
+   HIDE SCROLLBAR INTERFACE (Keeps Scrolling Functionality Intact)
+   ========================================================================== */
+
+/* Universal: Firefox */
+html, body, * {
+  scrollbar-width: none !important;
+}
+
+/* Universal: IE and Edge legacy */
+html, body, * {
+  -ms-overflow-style: none !important;
+}
+
+/* Universal: Chrome, Safari, Edge (Chromium), Opera */
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+
 

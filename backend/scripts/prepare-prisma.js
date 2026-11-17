@@ -38,6 +38,11 @@ try {
   execSync('npx prisma generate', { stdio: 'inherit', env: process.env });
   console.log('[Prisma Prepare] Prisma client generated successfully.');
 } catch (err) {
-  console.error('[Prisma Prepare] Failed to generate Prisma client:', err.message);
-  process.exit(1);
+  const clientTypesPath = path.resolve(__dirname, '../node_modules/.prisma/client/index.d.ts');
+  if (process.platform === 'win32' && fs.existsSync(clientTypesPath)) {
+    console.warn('[Prisma Prepare] Notice: Windows file lock on query engine DLL detected, but Prisma Client definitions are already present. Continuing build...');
+  } else {
+    console.error('[Prisma Prepare] Failed to generate Prisma client:', err.message);
+    process.exit(1);
+  }
 }

@@ -21,6 +21,11 @@ backend/dist/
 frontend/dist/
 backend/public/
 
+# Uploaded User Files (Persisted in Database/Cloud)
+uploads/
+backend/uploads/
+!backend/uploads/materials/mat-seed*
+
 # Editor & OS files
 .vscode/
 .idea/

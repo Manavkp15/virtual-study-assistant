@@ -1,23 +1,41 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { GraduationCap, ArrowRight, Lock, Mail, User, ShieldCheck, BookOpen, Globe, Eye, EyeOff, Sun, Moon } from 'lucide-react';
 import { tr } from '../utils/tr';
 import { isValidEmail, normalizeEmail } from '../utils/emailValidator';
+import { TEACHER_SUBJECTS } from '../utils/subjectConstants';
 
 export const Register: React.FC = () => {
   const { t, i18n } = useTranslation(['auth', 'common']);
   const { theme, toggleTheme } = useTheme();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navState = location.state as { role?: string } | null;
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [role, setRole] = useState('STUDENT');
+  const [role, setRole] = useState<'STUDENT' | 'TEACHER'>(() => {
+    const roleParam = searchParams.get('role')?.toUpperCase();
+    if (
+      roleParam === 'TEACHER' ||
+      roleParam === 'ADMIN' ||
+      navState?.role === 'TEACHER' ||
+      navState?.role === 'ADMIN' ||
+      location.pathname === '/teacher-register'
+    ) {
+      return 'TEACHER';
+    }
+    return 'STUDENT';
+  });
   const [standard, setStandard] = useState('Standard 8');
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -63,19 +81,33 @@ export const Register: React.FC = () => {
       return;
     }
 
+    // REQUIREMENT: "Subjects You Teach" is required for teachers.
+    // A teacher can select ONE or MULTIPLE subjects. The teacher MUST select at least one subject.
+    // Validation: "Please select at least one subject." / "કૃપા કરીને ઓછામાં ઓછો એક વિષય પસંદ કરો."
+    if (role === 'TEACHER' && selectedSubjects.length === 0) {
+      setError(
+        tr(
+          'કૃપા કરીને ઓછામાં ઓછો એક વિષય પસંદ કરો.',
+          'Please select at least one subject.',
+          'कृपया कम से कम एक विषय चुनें।'
+        )
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
       const normalized = normalizeEmail(email);
-      await register(normalized, password, name.trim(), role, standard);
+      await register(normalized, password, name.trim(), role, standard, role === 'TEACHER' ? selectedSubjects : undefined);
 
-      // Account created successfully. Redirect to login with verification instruction notice
-      navigate('/login', {
+      const isTeacher = role === 'TEACHER';
+      // Account created successfully. Redirect to login (specifically teacher login if teacher registered)
+      navigate(isTeacher ? '/login?role=teacher' : '/login?role=student', {
         state: {
           registeredEmail: normalized,
           registeredRole: role,
-          justRegistered: true,
-          verificationNotice: true
+          justRegistered: true
         }
       });
     } catch (err: any) {
@@ -146,8 +178,12 @@ export const Register: React.FC = () => {
           <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 border border-blue-500/20 text-blue-400 mb-2">
             {t('step1Badge')}
           </div>
-          <h1 className="text-2xl font-bold text-white">{t('registerTitle')}</h1>
-          <p className="text-sm text-slate-400 mt-1">{t('registerSubtitle')}</p>
+          <h1 className="text-2xl font-bold text-white">
+            {role === 'TEACHER' ? t('registerTeacherTitle') : t('registerTitle')}
+          </h1>
+          <p className="text-sm text-slate-400 mt-1">
+            {role === 'TEACHER' ? t('registerTeacherSubtitle') : t('registerSubtitle')}
+          </p>
         </div>
 
         {error && (
@@ -264,19 +300,19 @@ export const Register: React.FC = () => {
                 }`}
               >
                 <GraduationCap className="w-4 h-4" />
-                <span>{t('studentLogin')}</span>
+                <span>{t('studentAccount')}</span>
               </button>
               <button
                 type="button"
-                onClick={() => setRole('ADMIN')}
+                onClick={() => setRole('TEACHER')}
                 className={`py-3 px-4 rounded-xl border text-xs font-semibold flex items-center justify-center space-x-2 transition-all ${
-                  role === 'ADMIN'
+                  role === 'TEACHER'
                     ? 'bg-purple-600/20 border-purple-500 text-purple-400'
                     : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
                 }`}
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span>{t('teacherLogin')}</span>
+                <span>{t('teacherAccount')}</span>
               </button>
             </div>
           </div>
@@ -307,19 +343,91 @@ export const Register: React.FC = () => {
             </div>
           )}
 
+          {/* Multi-Select Subjects for Teacher Role */}
+          {role === 'TEACHER' && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-purple-400" />
+                  <span>{tr('તમે ભણાવતા વિષયો', 'Subjects You Teach', 'आपके द्वारा पढ़ाए जाने वाले विषय')}</span>
+                  <span className="text-rose-400">*</span>
+                </label>
+                <span className="text-[11px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/30 px-2 py-0.5 rounded-full">
+                  {selectedSubjects.length} {tr('પસંદ કરેલ', 'Selected', 'चयनित')}
+                </span>
+              </div>
+
+              <p className="text-[11px] text-slate-400 mb-2.5">
+                {tr(
+                  'તમે એક અથવા વધુ વિષયો પસંદ કરી શકો છો. ઓછામાં ઓછો એક વિષય પસંદ કરવો ફરજિયાત છે.',
+                  'You can select one or multiple subjects. At least one subject is required.',
+                  'आप एक या कई विषय चुन सकते हैं। कम से कम एक विषय चुनना अनिवार्य है।'
+                )}
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {TEACHER_SUBJECTS.map((s) => {
+                  const isChecked = selectedSubjects.includes(s.name);
+                  return (
+                    <label
+                      key={s.name}
+                      className={`flex items-center space-x-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        isChecked
+                          ? 'bg-purple-950/40 border-purple-500 text-purple-100 shadow-sm'
+                          : 'bg-slate-800/60 border-slate-700/70 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setSelectedSubjects(prev =>
+                            prev.includes(s.name) ? prev.filter(x => x !== s.name) : [...prev, s.name]
+                          );
+                        }}
+                        className="w-4 h-4 rounded border-slate-700 text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-600"
+                      />
+                      <span className="text-xs font-semibold">
+                        {i18n.language === 'gu'
+                          ? s.nameGu
+                          : i18n.language === 'hi'
+                          ? s.nameHi
+                          : s.name}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center space-x-2 mt-2"
+            className={`w-full py-3.5 text-white font-semibold text-sm rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2 mt-2 ${
+              role === 'TEACHER'
+                ? 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/30'
+                : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/30'
+            }`}
           >
-            <span>{loading ? t('common:saving') : t('registerButton')}</span>
+            <span>
+              {loading
+                ? t('common:saving')
+                : role === 'TEACHER'
+                ? t('registerTeacherButton')
+                : t('registerButton')}
+            </span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
         <p className="text-center text-xs text-slate-400 pt-2">
           {t('haveAccount')}{' '}
-          <Link to="/login" className="text-blue-400 hover:underline font-semibold">
+          <Link
+            to={role === 'TEACHER' ? '/login?role=teacher' : '/login'}
+            state={{ registeredRole: role }}
+            className="text-blue-400 hover:underline font-semibold"
+          >
             {t('loginHere')}
           </Link>
         </p>

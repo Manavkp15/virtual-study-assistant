@@ -57,6 +57,56 @@
     "markStudied": "अध्ययन किया हुआ मार्क करें",
     "markUnstudied": "पूर्ण (हटाने के लिए क्लिक करें)",
     "edit": "संपादित करें",
-    "delete": "हटाएं"
+    "delete": "हटाएं",
+    "publish": "प्रकाशित करें",
+    "unpublish": "अप्रकाशित करें",
+    "saveDraft": "ड्राफ्ट के रूप में सहेजें",
+    "publishNow": "सामग्री प्रकाशित करें",
+    "update": "सामग्री अपडेट करें",
+    "cancel": "रद्द करें",
+    "close": "बंद करें",
+    "replacePdf": "पीडीएफ बदलें"
+  },
+  "form": {
+    "title": "सामग्री शीर्षक",
+    "titlePlaceholder": "उदा. बीजगणित - रैखिक समीकरण मास्टर गाइड",
+    "standard": "लक्षित कक्षा",
+    "selectStandard": "कक्षा चुनें",
+    "subject": "विषय",
+    "selectSubject": "विषय चुनें",
+    "chapter": "अध्याय",
+    "selectChapter": "अध्याय चुनें",
+    "topic": "टॉपिक",
+    "selectTopic": "टॉपिक चुनें",
+    "description": "विवरण और उद्देश्य",
+    "descriptionPlaceholder": "विद्यार्थी इस सामग्री से क्या सीखेंगे...",
+    "pdfSection": "अध्ययन सामग्री पीडीएफ",
+    "pdfDragDrop": "अपनी पीडीएफ यहां खींचें या ब्राउज़ करें",
+    "pdfOnlyNotice": "केवल पीडीएफ प्रारूप (.pdf) समर्थित है।",
+    "videoSection": "संबंधित शैक्षणिक वीडियो",
+    "videoTitle": "वीडियो शीर्षक",
+    "videoTitlePlaceholder": "उदा. रैखिक समीकरण - अवधारणा",
+    "videoUrl": "वीडियो URL (यूट्यूब लिंक)",
+    "videoUrlPlaceholder": "https://www.youtube.com/watch?v=...",
+    "videoHelper": "यूट्यूब वीडियो और शॉर्ट्स समर्थित हैं।",
+    "status": "प्रकाशन स्थिति"
+  },
+  "modal": {
+    "pdfViewerTitle": "पीडीएफ व्यूअर",
+    "videoPlayerTitle": "शैक्षणिक वीडियो",
+    "detailsTitle": "अध्ययन सामग्री विवरण",
+    "loadingPdf": "पीडीएफ लोड हो रही है..."
+  },
+  "messages": {
+    "createdSuccess": "अध्ययन सामग्री सफलतापूर्वक बनाई गई!",
+    "updatedSuccess": "अध्ययन सामग्री सफलतापूर्वक अपडेट की गई!",
+    "statusChanged": "सामग्री स्थिति अपडेट की गई!",
+    "deletedSuccess": "सामग्री हटा दी गई!",
+    "titleSubjectRequired": "सामग्री शीर्षक और विषय आवश्यक हैं",
+    "errorOccurred": "एक त्रुटि हुई। कृपया पुनः प्रयास करें।"
+  },
+  "empty": {
+    "noMaterialsTitle": "कोई अध्ययन सामग्री नहीं मिली",
+    "noMaterialsSubtitle": "आपके खोज मानदंडों से मेल खाने वाली कोई सामग्री नहीं है।"
   }
 }

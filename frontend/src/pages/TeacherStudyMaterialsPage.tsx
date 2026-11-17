@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { tr, trSubject, trItem } from '../utils/tr';
+import { useAuth } from '../context/AuthContext';
+import {
+  getUserAssignedSubjects,
+  formatUserSubjectsDisplay,
+  getLocalizedSubjectName
+} from '../utils/subjectConstants';
 import api from '../services/api';
 import {
   Library,
@@ -23,7 +29,8 @@ import {
   BarChart3,
   Globe2,
   FolderTree,
-  AlertCircle
+  AlertCircle,
+  Lock
 } from 'lucide-react';
 import {
   BarChart,
@@ -88,7 +95,8 @@ interface MaterialItem {
 }
 
 export const TeacherStudyMaterialsPage: React.FC = () => {
-  const { t, i18n } = useTranslation(['materials', 'common']);
+  const { user } = useAuth();
+  const { t, i18n } = useTranslation(['studyMaterials', 'common']);
 
   const [activeTab, setActiveTab] = useState<'LIST' | 'ADD_EDIT' | 'ANALYTICS'>('LIST');
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
@@ -111,9 +119,7 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
   // Form State
   const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
   const [formTitle, setFormTitle] = useState('');
-  const [formTitleGu, setFormTitleGu] = useState('');
   const [formDescription, setFormDescription] = useState('');
-  const [formDescriptionGu, setFormDescriptionGu] = useState('');
   const [formStandard, setFormStandard] = useState('Standard 8');
   const [formSubjectId, setFormSubjectId] = useState('');
   const [formChapterId, setFormChapterId] = useState('');
@@ -171,15 +177,38 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
   const currentChapterObj = availableChapters.find(c => c.id === formChapterId);
   const availableTopics = currentChapterObj?.topics || [];
 
+  // Allowed subjects for teacher (filtered to assigned subjects if teacher)
+  const allowedSubjects = React.useMemo(() => {
+    if (user?.role !== 'TEACHER') return subjects;
+    const assigned = getUserAssignedSubjects(user).map(s => s.toLowerCase());
+    if (assigned.length === 0) return subjects;
+    return subjects.filter(s => {
+      const sName = (s.name || '').trim().toLowerCase();
+      const sNameGu = (s.nameGu || '').trim().toLowerCase();
+      return assigned.some(a => sName === a || sNameGu === a || sName.includes(a) || a.includes(sName));
+    });
+  }, [subjects, user]);
+
+  // Auto-select assigned subject for teachers
+  useEffect(() => {
+    if (user?.role === 'TEACHER' && allowedSubjects.length > 0) {
+      if (!formSubjectId || !allowedSubjects.some(s => s.id === formSubjectId)) {
+        setFormSubjectId(allowedSubjects[0].id);
+      }
+    }
+  }, [user, allowedSubjects, activeTab]);
+
   // Reset form
   const resetForm = () => {
     setEditingMaterial(null);
     setFormTitle('');
-    setFormTitleGu('');
     setFormDescription('');
-    setFormDescriptionGu('');
     setFormStandard('Standard 8');
-    setFormSubjectId('');
+    if (user?.role === 'TEACHER' && allowedSubjects.length > 0) {
+      setFormSubjectId(allowedSubjects[0].id);
+    } else {
+      setFormSubjectId('');
+    }
     setFormChapterId('');
     setFormTopicId('');
     setFormVideoTitle('');
@@ -193,9 +222,7 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
   const handleStartEdit = (mat: MaterialItem) => {
     setEditingMaterial(mat);
     setFormTitle(mat.title);
-    setFormTitleGu(mat.titleGu || '');
     setFormDescription(mat.description || '');
-    setFormDescriptionGu(mat.descriptionGu || '');
     setFormStandard(mat.standard || 'Standard 8');
     setFormSubjectId(mat.subjectId);
     setFormChapterId(mat.chapterId || '');
@@ -221,7 +248,7 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
   // Submit Add / Edit Form
   const handleSubmitForm = async (targetStatus?: 'DRAFT' | 'PUBLISHED') => {
     if (!formTitle.trim() || !formSubjectId) {
-      showFeedback('error', t('messages.titleSubjectRequired'));
+      showFeedback('error', t('messages.titleSubjectRequired', 'Material title and subject are required'));
       return;
     }
 
@@ -231,9 +258,11 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
 
     const formData = new FormData();
     formData.append('title', formTitle.trim());
-    if (formTitleGu.trim()) formData.append('titleGu', formTitleGu.trim());
-    if (formDescription.trim()) formData.append('description', formDescription.trim());
-    if (formDescriptionGu.trim()) formData.append('descriptionGu', formDescriptionGu.trim());
+    formData.append('titleGu', formTitle.trim());
+    if (formDescription.trim()) {
+      formData.append('description', formDescription.trim());
+      formData.append('descriptionGu', formDescription.trim());
+    }
     formData.append('standard', formStandard);
     formData.append('subjectId', formSubjectId);
     if (formChapterId) formData.append('chapterId', formChapterId);
@@ -373,7 +402,15 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white tracking-wide">{t('teacherTitle')}</h1>
-              <p className="text-xs text-slate-400 mt-0.5">{t('teacherSubtitle')}</p>
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                <p className="text-xs text-slate-400">{t('teacherSubtitle')}</p>
+                {user?.role === 'TEACHER' && getUserAssignedSubjects(user).length > 0 && (
+                  <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 font-bold text-[11px]">
+                    <Lock className="w-3 h-3 text-purple-400" />
+                    <span>{formatUserSubjectsDisplay(getUserAssignedSubjects(user), i18n.language)}</span>
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -388,7 +425,7 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
             className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-2xl shadow-lg shadow-indigo-600/30 transition-all flex items-center space-x-2"
           >
             <Plus className="w-4 h-4" />
-            <span>{t('addMaterial')}</span>
+            <span>{tr('સામગ્રી ઉમેરો (Add Material)', 'Add Material', 'सामग्री जोड़ें (Add Material)')}</span>
           </button>
 
           <div className="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 p-1.5 rounded-2xl">
@@ -520,8 +557,12 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
                 onChange={(e) => setSubjectFilter(e.target.value)}
                 className="bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
               >
-                <option value="ALL">{t('filters.allSubjects')}</option>
-                {subjects.map(s => (
+                <option value="ALL">
+                  {user?.role === 'TEACHER' && allowedSubjects.length > 1
+                    ? tr('બધા સોંપાયેલ વિષયો', 'All Assigned Subjects')
+                    : t('filters.allSubjects')}
+                </option>
+                {allowedSubjects.map(s => (
                   <option key={s.id} value={s.id}>
                     {trSubject(s)}
                   </option>
@@ -783,7 +824,9 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
               </button>
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  {editingMaterial ? t('editMaterial') : t('addMaterial')}
+                  {editingMaterial
+                    ? tr('સામગ્રી સંપાદિત કરો', 'Edit Material', 'सामग्री संपादित करें')
+                    : tr('સામગ્રી ઉમેરો (Add Material)', 'Add Material', 'सामग्री जोड़ें (Add Material)')}
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {tr('વિદ્યાર્થીઓ માટે શૈક્ષણિક વિગતો, પીડીએફ અને વિડિયો ઉમેરો', 'Fill in the educational details, PDF document, and video lesson for your students')}
@@ -793,43 +836,27 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
           </div>
 
           <form onSubmit={(e) => { e.preventDefault(); handleSubmitForm(); }} className="space-y-6">
-            {/* Title English & Gujarati */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
-                  <span>{t('form.title')}</span>
-                  <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder={t('form.titlePlaceholder')}
-                  className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
-                  <Globe2 className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>{t('form.titleGu')}</span>
-                </label>
-                <input
-                  type="text"
-                  value={formTitleGu}
-                  onChange={(e) => setFormTitleGu(e.target.value)}
-                  placeholder={t('form.titleGuPlaceholder')}
-                  className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
+            {/* Title */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
+                <span>{tr('સામગ્રી શીર્ષક', 'Material Title', 'सामग्री शीर्षक')}</span>
+                <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formTitle}
+                onChange={(e) => setFormTitle(e.target.value)}
+                placeholder={tr('દા.ત. બીજગણિત – સુરેખ સમીકરણો માસ્ટર માર્ગદર્શિકા', 'e.g. Algebra – Linear Equations Master Guide', 'उदा. बीजगणित - रैखिक समीकरण')}
+                className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
             </div>
 
             {/* Standard and Subject */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300">
-                  {t('form.standard')} <span className="text-rose-400">*</span>
+                  {tr('લક્ષિત ધોરણ / વર્ગ', 'Target Class / Standard', 'लक्षित कक्षा')} <span className="text-rose-400">*</span>
                 </label>
                 <select
                   value={formStandard}
@@ -844,26 +871,55 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">
-                  {t('form.subject')} <span className="text-rose-400">*</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-300">
+                    {tr('વિષય', 'Subject', 'विषय')} <span className="text-rose-400">*</span>
+                  </label>
+                  {user?.role === 'TEACHER' && (
+                    <span className="text-[10px] text-purple-400 font-bold flex items-center space-x-1">
+                      {allowedSubjects.length === 1 ? (
+                        <>
+                          <Lock className="w-3 h-3" />
+                          <span>{tr('સોંપાયેલ વિષય (લૉક)', 'Assigned Subject (Locked)')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Library className="w-3 h-3" />
+                          <span>{tr('તમારા સોંપાયેલ વિષયો', 'Your Assigned Subjects')} ({allowedSubjects.length})</span>
+                        </>
+                      )}
+                    </span>
+                  )}
+                </div>
                 <select
                   required
                   value={formSubjectId}
+                  disabled={user?.role === 'TEACHER' && allowedSubjects.length === 1}
                   onChange={(e) => {
                     setFormSubjectId(e.target.value);
                     setFormChapterId('');
                     setFormTopicId('');
                   }}
-                  className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className={`w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 ${
+                    user?.role === 'TEACHER' && allowedSubjects.length === 1
+                      ? 'cursor-not-allowed opacity-90 border-purple-500/40 bg-slate-900/80 font-medium'
+                      : ''
+                  }`}
                 >
-                  <option value="">{t('form.selectSubject')}</option>
-                  {subjects.map(s => (
+                  <option value="">{tr('-- વિષય પસંદ કરો --', '-- Select Subject --', '-- विषय चुनें --')}</option>
+                  {allowedSubjects.map(s => (
                     <option key={s.id} value={s.id}>
                       {trSubject(s)} ({s.code})
                     </option>
                   ))}
                 </select>
+                {user?.role === 'TEACHER' && (
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {allowedSubjects.length === 1
+                      ? tr('શિક્ષકો ફક્ત તેમના સોંપાયેલ વિષય માટે જ સાહિત્ય અપલોડ કરી શકે છે.', 'Teachers can only upload study materials for their assigned subject.')
+                      : tr('તમે ભણાવતા સોંપાયેલ વિષયોમાંથી કોઈ એક વિષય પસંદ કરો.', 'Select one of the subjects you are assigned to teach.')}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -872,7 +928,7 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
                   <FolderTree className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>{t('form.chapter')}</span>
+                  <span>{tr('પ્રકરણ', 'Chapter', 'अध्याय')}</span>
                 </label>
                 <select
                   value={formChapterId}
@@ -883,7 +939,7 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
                   disabled={!formSubjectId || availableChapters.length === 0}
                   className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white disabled:opacity-50 focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="">{t('form.selectChapter')}</option>
+                  <option value="">{tr('-- પ્રકરણ પસંદ કરો --', '-- Select Chapter --', '-- अध्याय चुनें --')}</option>
                   {availableChapters.map(c => (
                     <option key={c.id} value={c.id}>
                       {trItem(c.nameGu, c.name)}
@@ -894,7 +950,7 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300">
-                  {t('form.topic')}
+                  {tr('ટોપિક / મુદ્દો', 'Topic', 'विषय बिंदु')}
                 </label>
                 <select
                   value={formTopicId}
@@ -902,7 +958,7 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
                   disabled={!formChapterId || availableTopics.length === 0}
                   className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white disabled:opacity-50 focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="">{t('form.selectTopic')}</option>
+                  <option value="">{tr('-- ટોપિક પસંદ કરો --', '-- Select Topic --', '-- टॉपिक चुनें --')}</option>
                   {availableTopics.map(tItem => (
                     <option key={tItem.id} value={tItem.id}>
                       {trItem(tItem.nameGu, tItem.name)}
@@ -912,39 +968,29 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Description (English & Gujarati) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300">{t('form.description')}</label>
-                <textarea
-                  rows={3}
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder={t('form.descriptionPlaceholder')}
-                  className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 flex items-center space-x-1.5">
-                  <Globe2 className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>{t('form.descriptionGu')}</span>
-                </label>
-                <textarea
-                  rows={3}
-                  value={formDescriptionGu}
-                  onChange={(e) => setFormDescriptionGu(e.target.value)}
-                  placeholder={t('form.descriptionGuPlaceholder')}
-                  className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
-                />
-              </div>
+            {/* Description */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300">
+                {tr('વર્ણન અને શૈક્ષણિક ઉદ્દેશ્યો', 'Description & Learning Objectives', 'विवरण और उद्देश्य')}
+              </label>
+              <textarea
+                rows={3}
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                placeholder={tr(
+                  'આ અભ્યાસ સામગ્રીમાંથી વિદ્યાર્થીઓ શું શીખશે તેનું સંક્ષિપ્ત વર્ણન આપો...',
+                  'Provide a brief description of what students will learn from this material...',
+                  'संक्षिप्त विवरण प्रदान करें...'
+                )}
+                className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
+              />
             </div>
 
             {/* Section: Study Material PDF Upload (Zero size limit, strict PDF) */}
             <div className="space-y-3 pt-2">
               <label className="text-sm font-bold text-white flex items-center space-x-2">
                 <FileText className="w-4 h-4 text-rose-400" />
-                <span>{t('form.pdfSection')}</span>
+                <span>{tr('અભ્યાસ સાહિત્ય પીડીએફ', 'Study Material PDF', 'अध्ययन सामग्री पीडीएफ')}</span>
               </label>
 
               {editingMaterial?.pdfFileName && !selectedFile && (
@@ -952,11 +998,11 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <FileText className="w-4 h-4 text-rose-400" />
                     <span className="text-slate-300 font-medium">
-                      {tr('હાલની પીડીએફ: ', 'Current PDF: ')}
+                      {tr('હાલની પીડીએફ: ', 'Current PDF: ', 'वर्तमान पीडीएफ: ')}
                       <span className="font-bold text-white">{editingMaterial.pdfFileName}</span>
                     </span>
                   </div>
-                  <span className="text-[10px] text-indigo-400 font-semibold">{t('actions.replacePdf')}</span>
+                  <span className="text-[10px] text-indigo-400 font-semibold">{t('actions.replacePdf', 'Replace PDF')}</span>
                 </div>
               )}
 
@@ -998,21 +1044,21 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-xs font-bold text-slate-100">{selectedFile.name}</p>
-                      <p className="text-[11px] text-emerald-400 font-medium">{t('form.pdfOnlyNotice')}</p>
+                      <p className="text-[11px] text-emerald-400 font-medium">{tr('ફક્ત પીડીએફ ફોર્મેટ (.pdf) માન્ય છે.', 'Strictly PDF format (.pdf). All file sizes supported.', 'केवल पीडीएफ प्रारूप (.pdf) समर्थित है।')}</p>
                     </div>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
                       className="text-[11px] text-rose-400 hover:underline pt-1"
                     >
-                      {t('actions.cancel')}
+                      {tr('રદ કરો', 'Cancel', 'रद्द करें')}
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <UploadCloud className="w-8 h-8 text-slate-400 mx-auto" />
-                    <p className="text-xs font-semibold text-slate-300">{t('form.pdfDragDrop')}</p>
-                    <p className="text-[11px] text-slate-500">{t('form.pdfOnlyNotice')}</p>
+                    <p className="text-xs font-semibold text-slate-300">{tr('તમારી પીડીએફ અહીં ખેંચીને મૂકો, અથવા બ્રાઉઝ કરવા ક્લિક કરો', 'Drag and drop your PDF here, or click to browse', 'अपनी पीडीएफ यहाँ खींचें या ब्राउज़ करें')}</p>
+                    <p className="text-[11px] text-slate-500">{tr('ફક્ત પીડીએફ ફોર્મેટ (.pdf) માન્ય છે.', 'Strictly PDF format (.pdf). All file sizes supported.', 'केवल पीडीएफ प्रारूप (.pdf) समर्थित है।')}</p>
                   </div>
                 )}
               </div>
@@ -1021,35 +1067,35 @@ export const TeacherStudyMaterialsPage: React.FC = () => {
             {/* Section: Related Educational Video */}
             <div className="space-y-3 pt-2">
               <label className="text-sm font-bold text-white flex items-center space-x-2">
-                <Video className="w-4 h-4 text-red-400" />
-                <span>{t('form.videoSection')}</span>
+                <Video className="w-4 h-4 text-sky-400" />
+                <span>{tr('સંબંધિત શૈક્ષણિક વિડિયો (વૈકલ્પિક)', 'Related Educational Video (Optional)', 'संबंधित शैक्षणिक वीडियो (वैकल्पिक)')}</span>
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">{t('form.videoTitle')}</label>
+                  <label className="text-xs font-semibold text-slate-300">{tr('વિડિયો શીર્ષક', 'Video Title', 'वीडियो शीर्षक')}</label>
                   <input
                     type="text"
                     value={formVideoTitle}
                     onChange={(e) => setFormVideoTitle(e.target.value)}
-                    placeholder={t('form.videoTitlePlaceholder')}
+                    placeholder={tr('દા.ત. સુરેખ સમીકરણો - સંપૂર્ણ સમજૂતી', 'e.g. Linear Equations in One Variable - Complete Concept', 'उदा. रैखिक समीकरण - अवधारणा')}
                     className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">{t('form.videoUrl')}</label>
+                  <label className="text-xs font-semibold text-slate-300">{tr('વિડિયો URL (YouTube લિંક)', 'Video URL (YouTube Link)', 'वीडियो यूआरएल (यूट्यूब)')}</label>
                   <input
                     type="url"
                     value={formVideoUrl}
                     onChange={(e) => setFormVideoUrl(e.target.value)}
-                    placeholder={t('form.videoUrlPlaceholder')}
+                    placeholder="https://www.youtube.com/watch?v=..."
                     className="w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-400">{t('form.videoHelper')}</p>
+              <p className="text-[11px] text-slate-400">{tr('YouTube વિડિયો, YouTube Shorts અને શૈક્ષણિક વિડિયો લિંક્સને સપોર્ટ કરે છે. વિડિયો સીધો જ પ્રદર્શિત થશે.', 'Supports YouTube videos, YouTube Shorts, and educational video links. Videos will be embedded directly for students.', 'यूट्यूब वीडियो और शॉर्ट्स समर्थित हैं।')}</p>
 
               {/* Real-time Video Preview */}
               {formVideoUrl && formVideoUrl.includes('youtube') && (

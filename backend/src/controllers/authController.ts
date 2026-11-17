@@ -3,9 +3,16 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../database/prisma';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { removeAvatarFile } from '../services/fileStorage';
+import { removeAvatarFile, AVATARS_UPLOAD_DIR, persistFile, deletePersistedFile } from '../services/fileStorage';
 import { isValidEmail, normalizeEmail } from '../utils/emailValidator';
 import { generateSecureToken, hashToken, sendVerificationEmail, sendPasswordResetEmail } from '../services/emailService';
+import {
+  ensureSubjectInDatabase,
+  getCanonicalSubjectName,
+  isValidTeacherSubject,
+  TEACHER_SUBJECTS,
+  getTeacherAssignedSubjects
+} from '../utils/subjectConstants';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'study_assistant_super_secret_jwt_key_2026_antigravity';
 
@@ -14,7 +21,7 @@ const resendCooldowns = new Map<string, number>();
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, name, role, standard } = req.body;
+    const { email, password, name, role, standard, subject, teacherSubject } = req.body;
 
     if (!name || typeof name !== 'string' || name.trim() === '') {
       return res.status(400).json({ error: 'Full Name is required' });
@@ -40,8 +47,42 @@ export const register = async (req: Request, res: Response) => {
     const userRole = role === 'ADMIN' ? 'ADMIN' : role === 'TEACHER' ? 'TEACHER' : 'STUDENT';
     const userStandard = standard || 'Standard 8';
 
-    // Generate single-use expiring verification token
-    const { rawToken, tokenHash, expiresAt } = generateSecureToken(24);
+    // REQUIREMENT: One teacher can teach multiple subjects.
+    // The teacher MUST select at least one subject.
+    // Validation: "Please select at least one subject." / "કૃપા કરીને ઓછામાં ઓછો એક વિષય પસંદ કરો."
+    let teacherSubjectList: string[] = [];
+    if (userRole === 'TEACHER') {
+      const { subjects, teachingSubjects, teacherSubjects: bodyTeacherSubjects } = req.body;
+      const rawList = subjects || bodyTeacherSubjects || teachingSubjects || subject || teacherSubject;
+
+      if (Array.isArray(rawList)) {
+        teacherSubjectList = rawList.map(s => String(s).trim()).filter(Boolean);
+      } else if (typeof rawList === 'string' && rawList.trim()) {
+        teacherSubjectList = rawList.split(',').map(s => s.trim()).filter(Boolean);
+      }
+
+      if (teacherSubjectList.length === 0) {
+        return res.status(400).json({
+          error: 'Please select at least one subject.',
+          messageGu: 'કૃપા કરીને ઓછામાં ઓછો એક વિષય પસંદ કરો.'
+        });
+      }
+
+      // Validate each subject is in the 7 allowed canonical subjects
+      const validCanonicalSubjects: string[] = [];
+      for (const raw of teacherSubjectList) {
+        if (!isValidTeacherSubject(raw)) {
+          return res.status(400).json({
+            error: `Invalid subject: "${raw}". Allowed subjects are: ${TEACHER_SUBJECTS.map(s => s.name).join(', ')}`,
+            messageGu: 'અમાન્ય વિષય પસંદ કર્યો છે.'
+          });
+        }
+        validCanonicalSubjects.push(getCanonicalSubjectName(raw));
+      }
+      teacherSubjectList = Array.from(new Set(validCanonicalSubjects));
+    }
+
+    const primarySubject = teacherSubjectList.length > 0 ? teacherSubjectList[0] : null;
 
     const user = await prisma.user.create({
       data: {
@@ -49,9 +90,12 @@ export const register = async (req: Request, res: Response) => {
         passwordHash,
         name: name.trim(),
         role: userRole,
-        emailVerified: false,
-        emailVerificationTokenHash: tokenHash,
-        emailVerificationExpiresAt: expiresAt,
+        teacherSubject: primarySubject,
+        teachingSubjects: teacherSubjectList.join(', '),
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
+        emailVerificationTokenHash: null,
+        emailVerificationExpiresAt: null,
         profile: userRole === 'STUDENT' ? {
           create: {
             standard: userStandard,
@@ -67,19 +111,60 @@ export const register = async (req: Request, res: Response) => {
         email: true,
         name: true,
         role: true,
+        teacherSubject: true,
+        teachingSubjects: true,
         emailVerified: true,
         createdAt: true
       }
     });
 
-    // Send verification email to the user
-    await sendVerificationEmail(normalizedEmail, rawToken, user.name);
+    // Auto-link teacher to all assigned subjects in TeacherSubject and TeacherSubjectMapping
+    if (userRole === 'TEACHER' && teacherSubjectList.length > 0) {
+      try {
+        for (const subName of teacherSubjectList) {
+          const sub = await ensureSubjectInDatabase(prisma, subName);
+          if (sub) {
+            await prisma.teacherSubject.upsert({
+              where: {
+                teacherId_subjectId: {
+                  teacherId: user.id,
+                  subjectId: sub.id
+                }
+              },
+              create: {
+                teacherId: user.id,
+                subjectId: sub.id
+              },
+              update: {}
+            });
+            await prisma.teacherSubjectMapping.upsert({
+              where: {
+                teacherId_subjectId: {
+                  teacherId: user.id,
+                  subjectId: sub.id
+                }
+              },
+              create: {
+                teacherId: user.id,
+                subjectId: sub.id
+              },
+              update: {}
+            });
+          }
+        }
+      } catch (mappingErr) {
+        console.warn('Auto teacher subject mapping warning:', mappingErr);
+      }
+    }
 
     res.status(201).json({
-      message: 'Account created. Please check your email and click the verification link before logging in.',
+      message: 'Account created successfully! You can now log in.',
       email: normalizedEmail,
-      unverified: true,
-      user
+      unverified: false,
+      user: {
+        ...user,
+        subjects: teacherSubjectList
+      }
     });
   } catch (error: any) {
     console.error('Register error:', error);
@@ -103,7 +188,15 @@ export const login = async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
-      include: { profile: true }
+      include: {
+        profile: true,
+        teacherSubjects: {
+          include: { subject: true }
+        },
+        subjectMappings: {
+          include: { subject: true }
+        }
+      }
     });
 
     // Do NOT reveal whether an email exists on login
@@ -116,12 +209,16 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Check if email has been verified
+    // If user's email was not marked verified previously, auto-mark it as verified on successful login
     if (!user.emailVerified) {
-      return res.status(403).json({
-        error: 'Please verify your email before logging in.',
-        unverified: true,
-        email: normalizedEmail
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerified: true,
+          emailVerifiedAt: new Date(),
+          emailVerificationTokenHash: null,
+          emailVerificationExpiresAt: null
+        }
       });
     }
 
@@ -153,6 +250,17 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '7d' }
     );
 
+    // Collect all assigned subjects for teacher
+    const tsSubjectObjs = (user.teacherSubjects || []).map(ts => ts.subject);
+    const smSubjectObjs = (user.subjectMappings || []).map(sm => sm.subject);
+    const combinedObjs = tsSubjectObjs.length > 0 ? tsSubjectObjs : smSubjectObjs;
+
+    let assignedSubjects: string[] = Array.from(new Set(combinedObjs.map(s => s.name)));
+    if (assignedSubjects.length === 0 && (user.teachingSubjects || user.teacherSubject)) {
+      const raw = user.teachingSubjects || user.teacherSubject || '';
+      assignedSubjects = Array.from(new Set(raw.split(',').map(s => s.trim()).filter(Boolean)));
+    }
+
     res.json({
       message: 'Login successful',
       token,
@@ -163,6 +271,10 @@ export const login = async (req: Request, res: Response) => {
         role: user.role,
         avatarUrl: user.avatarUrl,
         mobileNumber: user.mobileNumber,
+        teachingSubjects: assignedSubjects.join(', ') || user.teachingSubjects,
+        teacherSubject: assignedSubjects[0] || user.teacherSubject,
+        subjects: assignedSubjects,
+        teacherSubjects: combinedObjs,
         emailVerified: user.emailVerified,
         profile: user.profile
       }
@@ -315,15 +427,72 @@ export const resendVerification = async (req: Request, res: Response) => {
       }
     });
 
-    await sendVerificationEmail(user.email, rawToken, user.name);
+    const emailResult = await sendVerificationEmail(user.email, rawToken, user.name);
 
     res.json({
       message: 'Verification email sent. Please check your inbox.',
-      email: normalizedEmail
+      email: normalizedEmail,
+      verificationUrl: emailResult.verificationUrl,
+      simulated: emailResult.simulated
     });
   } catch (error: any) {
     console.error('Resend verification error:', error);
     res.status(500).json({ error: 'Failed to resend verification email' });
+  }
+};
+
+/**
+ * Instant verification for development / fallback mode or direct verification from login page.
+ */
+export const quickVerify = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    if (user.emailVerified) {
+      return res.json({
+        status: 'ALREADY_VERIFIED',
+        message: 'Your email is already verified.',
+        email: user.email
+      });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
+        emailVerificationTokenHash: null,
+        emailVerificationExpiresAt: null
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        emailVerified: true
+      }
+    });
+
+    res.json({
+      status: 'SUCCESS',
+      message: 'Email verified successfully.',
+      email: updatedUser.email
+    });
+  } catch (error: any) {
+    console.error('Quick verify error:', error);
+    res.status(500).json({ error: 'Failed to verify email' });
   }
 };
 
@@ -341,14 +510,67 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response) =
         role: true,
         avatarUrl: true,
         mobileNumber: true,
+        teachingSubjects: true,
+        teacherSubject: true,
         createdAt: true,
-        profile: true
+        profile: true,
+        teacherSubjects: {
+          include: {
+            subject: {
+              select: {
+                id: true,
+                name: true,
+                nameGu: true,
+                code: true,
+                standard: true,
+                icon: true,
+                description: true,
+                descriptionGu: true
+              }
+            }
+          }
+        },
+        subjectMappings: {
+          include: {
+            subject: {
+              select: {
+                id: true,
+                name: true,
+                nameGu: true,
+                code: true,
+                standard: true,
+                icon: true,
+                description: true,
+                descriptionGu: true
+              }
+            }
+          }
+        }
       }
     });
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    res.json({ user });
+    // Collect all assigned subjects
+    const tsSubjectObjs = (user.teacherSubjects || []).map(ts => ts.subject);
+    const smSubjectObjs = (user.subjectMappings || []).map(sm => sm.subject);
+    const combinedObjs = tsSubjectObjs.length > 0 ? tsSubjectObjs : smSubjectObjs;
+
+    let assignedSubjects: string[] = Array.from(new Set(combinedObjs.map(s => s.name)));
+    if (assignedSubjects.length === 0 && (user.teachingSubjects || user.teacherSubject)) {
+      const raw = user.teachingSubjects || user.teacherSubject || '';
+      assignedSubjects = Array.from(new Set(raw.split(',').map(s => s.trim()).filter(Boolean)));
+    }
+
+    res.json({
+      user: {
+        ...user,
+        subjects: assignedSubjects,
+        teacherSubjects: combinedObjs,
+        teachingSubjects: assignedSubjects.join(', ') || user.teachingSubjects,
+        teacherSubject: assignedSubjects[0] || user.teacherSubject
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch user profile' });
   }
@@ -367,12 +589,120 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
       availableHoursPerDay,
       examDate,
       targetPercentage,
-      standard
+      standard,
+      teachingSubjects,
+      teacherSubject,
+      subject,
+      subjectIds
     } = req.body;
 
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: true }
+    });
+
+    if (!currentUser) return res.status(404).json({ error: 'User not found' });
+
+    const isTeacher = currentUser.role === 'TEACHER' || currentUser.role === 'ADMIN';
+
     const userUpdateData: any = {};
-    if (name) userUpdateData.name = name;
-    if (mobileNumber !== undefined) {
+    if (name && typeof name === 'string' && name.trim()) {
+      userUpdateData.name = name.trim();
+    }
+
+    if (isTeacher) {
+      // Extract subjects list from subjects, teacherSubjects, teachingSubjects, subject, or subjectIds
+      const incomingList = req.body.subjects !== undefined
+        ? req.body.subjects
+        : req.body.teacherSubjects !== undefined
+        ? req.body.teacherSubjects
+        : req.body.subjectIds !== undefined
+        ? req.body.subjectIds
+        : req.body.subject !== undefined
+        ? req.body.subject
+        : req.body.teachingSubjects;
+
+      if (incomingList !== undefined) {
+        let requestedSubjects: string[] = [];
+        if (Array.isArray(incomingList)) {
+          requestedSubjects = incomingList.map(s => String(s).trim()).filter(Boolean);
+        } else if (typeof incomingList === 'string' && incomingList.trim()) {
+          requestedSubjects = incomingList.split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        // VALIDATION: Teacher MUST have at least one subject!
+        if (requestedSubjects.length === 0) {
+          return res.status(400).json({
+            error: 'Please select at least one subject.',
+            messageGu: 'કૃપા કરીને ઓછામાં ઓછો એક વિષય પસંદ કરો.'
+          });
+        }
+
+        // Validate subjects against canonical subjects (support ID or name)
+        const canonicalNames: string[] = [];
+        const subjectRecordIds: string[] = [];
+
+        for (const item of requestedSubjects) {
+          const matchedById = await prisma.subject.findUnique({ where: { id: item } });
+          if (matchedById) {
+            if (!isValidTeacherSubject(matchedById.name)) {
+              return res.status(400).json({
+                error: `Invalid subject: "${matchedById.name}". Allowed subjects are: ${TEACHER_SUBJECTS.map(s => s.name).join(', ')}`,
+                messageGu: 'અમાન્ય વિષય પસંદ કર્યો છે.'
+              });
+            }
+            canonicalNames.push(getCanonicalSubjectName(matchedById.name));
+            subjectRecordIds.push(matchedById.id);
+          } else {
+            if (!isValidTeacherSubject(item)) {
+              return res.status(400).json({
+                error: `Invalid subject: "${item}". Allowed subjects are: ${TEACHER_SUBJECTS.map(s => s.name).join(', ')}`,
+                messageGu: 'અમાન્ય વિષય પસંદ કર્યો છે.'
+              });
+            }
+            const cName = getCanonicalSubjectName(item);
+            canonicalNames.push(cName);
+            const sub = await ensureSubjectInDatabase(prisma, cName);
+            if (sub) subjectRecordIds.push(sub.id);
+          }
+        }
+
+        const uniqueNames = Array.from(new Set(canonicalNames));
+        const uniqueIds = Array.from(new Set(subjectRecordIds));
+
+        userUpdateData.teacherSubject = uniqueNames[0] || null;
+        userUpdateData.teachingSubjects = uniqueNames.join(', ');
+
+        // Synchronize TeacherSubject table
+        await prisma.teacherSubject.deleteMany({ where: { teacherId: userId } });
+        for (const sid of uniqueIds) {
+          await prisma.teacherSubject.create({
+            data: { teacherId: userId, subjectId: sid }
+          });
+        }
+
+        // Synchronize TeacherSubjectMapping table
+        await prisma.teacherSubjectMapping.deleteMany({ where: { teacherId: userId } });
+        for (const sid of uniqueIds) {
+          await prisma.teacherSubjectMapping.create({
+            data: { teacherId: userId, subjectId: sid }
+          });
+        }
+      }
+    } else {
+      if (teachingSubjects !== undefined) {
+        if (typeof teachingSubjects === 'string') {
+          userUpdateData.teachingSubjects = teachingSubjects.trim() || null;
+        } else if (Array.isArray(teachingSubjects)) {
+          userUpdateData.teachingSubjects = JSON.stringify(teachingSubjects);
+        } else {
+          userUpdateData.teachingSubjects = null;
+        }
+      }
+    }
+
+    // Mobile number is only updated for students; for teachers it is omitted
+    if (!isTeacher && mobileNumber !== undefined) {
       userUpdateData.mobileNumber = mobileNumber ? String(mobileNumber).trim() : null;
     }
 
@@ -383,14 +713,9 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
       });
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { profile: true }
-    });
-
+    // Student profile updates (only for students)
     let updatedProfile = currentUser?.profile;
-
-    if (currentUser?.role === 'STUDENT' || rollNumber !== undefined || udiseCode !== undefined || standard) {
+    if (!isTeacher) {
       updatedProfile = await prisma.studentProfile.upsert({
         where: { userId },
         update: {
@@ -424,14 +749,66 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
         role: true,
         avatarUrl: true,
         mobileNumber: true,
+        teachingSubjects: true,
+        teacherSubject: true,
         createdAt: true,
-        profile: true
+        profile: true,
+        teacherSubjects: {
+          include: {
+            subject: {
+              select: {
+                id: true,
+                name: true,
+                nameGu: true,
+                code: true,
+                standard: true,
+                icon: true,
+                description: true,
+                descriptionGu: true
+              }
+            }
+          }
+        },
+        subjectMappings: {
+          include: {
+            subject: {
+              select: {
+                id: true,
+                name: true,
+                nameGu: true,
+                code: true,
+                standard: true,
+                icon: true,
+                description: true,
+                descriptionGu: true
+              }
+            }
+          }
+        }
       }
     });
 
+    const tsSubjectObjs = (freshUser?.teacherSubjects || []).map(ts => ts.subject);
+    const smSubjectObjs = (freshUser?.subjectMappings || []).map(sm => sm.subject);
+    const combinedObjs = tsSubjectObjs.length > 0 ? tsSubjectObjs : smSubjectObjs;
+
+    let assignedSubjects: string[] = Array.from(new Set(combinedObjs.map(s => s.name)));
+    if (assignedSubjects.length === 0 && (freshUser?.teachingSubjects || freshUser?.teacherSubject)) {
+      const raw = freshUser?.teachingSubjects || freshUser?.teacherSubject || '';
+      assignedSubjects = Array.from(new Set(raw.split(',').map(s => s.trim()).filter(Boolean)));
+    }
+
+    const formattedUser = freshUser ? {
+      ...freshUser,
+      subjects: assignedSubjects,
+      teacherSubjects: combinedObjs,
+      teachingSubjects: assignedSubjects.join(', ') || freshUser.teachingSubjects,
+      teacherSubject: assignedSubjects[0] || freshUser.teacherSubject
+    } : null;
+
     res.json({
-      message: 'Profile updated successfully',
-      user: freshUser,
+      message: isTeacher ? 'Teacher profile updated successfully' : 'Profile updated successfully',
+      user: formattedUser,
       profile: updatedProfile
     });
   } catch (error) {
@@ -439,6 +816,148 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
     res.status(500).json({ error: 'Failed to update profile' });
   }
 };
+
+/**
+ * Get all available subjects along with teacher's currently mapped subjects
+ */
+export const getTeacherSubjectMappings = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const [allSubjects, mappings] = await Promise.all([
+      prisma.subject.findMany({
+        orderBy: [{ standard: 'asc' }, { name: 'asc' }],
+        include: {
+          _count: {
+            select: {
+              chapters: true,
+              tests: true,
+              homeworks: true,
+              studyMaterials: true
+            }
+          }
+        }
+      }),
+      prisma.teacherSubject.findMany({
+        where: { teacherId: userId },
+        include: { subject: true }
+      })
+    ]);
+
+    const mappedSubjectIds = mappings.map(m => m.subjectId);
+
+    res.json({
+      allSubjects,
+      mappings,
+      mappedSubjectIds
+    });
+  } catch (error) {
+    console.error('getTeacherSubjectMappings error:', error);
+    res.status(500).json({ error: 'Failed to fetch teacher subject mappings' });
+  }
+};
+
+/**
+ * Update teacher's mapped subjects
+ */
+export const updateTeacherSubjectMappings = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { subjectIds, subjects } = req.body;
+    const rawIds = Array.isArray(subjectIds) ? subjectIds : Array.isArray(subjects) ? subjects : [];
+
+    if (rawIds.length === 0) {
+      return res.status(400).json({
+        error: 'Please select at least one subject.',
+        messageGu: 'કૃપા કરીને ઓછામાં ઓછો એક વિષય પસંદ કરો.'
+      });
+    }
+
+    const validSubjects = await prisma.subject.findMany({
+      where: {
+        OR: [
+          { id: { in: rawIds.map(String) } },
+          { name: { in: rawIds.map(String) } }
+        ]
+      },
+      select: { id: true, name: true }
+    });
+
+    if (validSubjects.length === 0) {
+      return res.status(400).json({
+        error: 'Please select at least one subject.',
+        messageGu: 'કૃપા કરીને ઓછામાં ઓછો એક વિષય પસંદ કરો.'
+      });
+    }
+
+    // Verify all belong to the 7 canonical subjects
+    for (const vs of validSubjects) {
+      if (!isValidTeacherSubject(vs.name)) {
+        return res.status(400).json({
+          error: `Invalid subject: "${vs.name}". Allowed subjects are: ${TEACHER_SUBJECTS.map(s => s.name).join(', ')}`,
+          messageGu: 'અમાન્ય વિષય પસંદ કર્યો છે.'
+        });
+      }
+    }
+
+    const canonicalNames = validSubjects.map(s => getCanonicalSubjectName(s.name));
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        teacherSubject: canonicalNames[0],
+        teachingSubjects: canonicalNames.join(', ')
+      }
+    });
+
+    await prisma.teacherSubject.deleteMany({ where: { teacherId: userId } });
+    await prisma.teacherSubjectMapping.deleteMany({ where: { teacherId: userId } });
+
+    for (const sub of validSubjects) {
+      await prisma.teacherSubject.create({
+        data: { teacherId: userId, subjectId: sub.id }
+      });
+      await prisma.teacherSubjectMapping.create({
+        data: { teacherId: userId, subjectId: sub.id }
+      });
+    }
+
+    const updatedMappings = await prisma.teacherSubject.findMany({
+      where: { teacherId: userId },
+      include: { subject: true }
+    });
+
+    res.json({
+      message: 'Subject mappings updated successfully',
+      mappings: updatedMappings,
+      mappedSubjectIds: updatedMappings.map(m => m.subjectId),
+      subjects: canonicalNames
+    });
+  } catch (error) {
+    console.error('updateTeacherSubjectMappings error:', error);
+    res.status(500).json({ error: 'Failed to update teacher subject mappings' });
+  }
+};
+
+/**
+ * Get assigned subjects for authenticated teacher
+ */
+export const getTeacherAssignedSubjectsList = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const subjects = await getTeacherAssignedSubjects(prisma, userId);
+    res.json({ subjects });
+  } catch (error) {
+    console.error('getTeacherAssignedSubjectsList error:', error);
+    res.status(500).json({ error: 'Failed to fetch assigned subjects' });
+  }
+};
+
 
 export const forgotPassword = async (req: Request, res: Response) => {
   try {
@@ -489,8 +1008,10 @@ export const uploadAvatar = async (req: AuthenticatedRequest, res: Response) => 
     });
 
     if (currentUser?.avatarUrl) {
-      removeAvatarFile(currentUser.avatarUrl);
+      await deletePersistedFile(currentUser.avatarUrl, AVATARS_UPLOAD_DIR);
     }
+
+    await persistFile(req.file.path, req.file.filename, req.file.mimetype, req.file.originalname);
 
     const avatarUrl = `/uploads/avatars/${req.file.filename}`;
 
@@ -535,7 +1056,7 @@ export const removeAvatar = async (req: AuthenticatedRequest, res: Response) => 
     });
 
     if (currentUser?.avatarUrl) {
-      removeAvatarFile(currentUser.avatarUrl);
+      await deletePersistedFile(currentUser.avatarUrl, AVATARS_UPLOAD_DIR);
     }
 
     const updatedUser = await prisma.user.update({

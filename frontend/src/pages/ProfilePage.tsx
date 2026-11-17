@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import {
@@ -7,6 +8,7 @@ import {
   CheckCircle2,
   Save,
   BookOpen,
+  LayoutDashboard,
   Lock,
   Mail,
   Camera,
@@ -18,18 +20,28 @@ import {
   School
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { tr, trSubject, trItem } from '../utils/tr';
+import { tr } from '../utils/tr';
+import {
+  TEACHER_SUBJECTS,
+  getLocalizedSubjectName,
+  getUserAssignedSubjects,
+  formatUserSubjectsDisplay
+} from '../utils/subjectConstants';
 
 export const ProfilePage: React.FC = () => {
   const { user, updateProfileState } = useAuth();
   const { t, i18n } = useTranslation(['common', 'auth']);
 
-  const isTeacher = user?.role === 'ADMIN';
+  // Correctly detect teacher role whether registered as TEACHER or ADMIN
+  const isTeacher = user?.role === 'ADMIN' || user?.role === 'TEACHER';
 
   const [name, setName] = useState(user?.name || '');
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() => getUserAssignedSubjects(user));
+  // Student-only fields (hidden for teachers)
   const [mobileNumber, setMobileNumber] = useState(user?.mobileNumber || user?.profile?.mobileNumber || '');
   const [rollNumber, setRollNumber] = useState(user?.profile?.rollNumber || '');
   const [udiseCode, setUdiseCode] = useState(user?.profile?.udiseCode || '');
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -39,11 +51,15 @@ export const ProfilePage: React.FC = () => {
   useEffect(() => {
     if (user) {
       setName(user.name || '');
-      setMobileNumber(user.mobileNumber || user.profile?.mobileNumber || '');
-      setRollNumber(user.profile?.rollNumber || '');
-      setUdiseCode(user.profile?.udiseCode || '');
+      if (isTeacher) {
+        setSelectedSubjects(getUserAssignedSubjects(user));
+      } else {
+        setMobileNumber(user.mobileNumber || user.profile?.mobileNumber || '');
+        setRollNumber(user.profile?.rollNumber || '');
+        setUdiseCode(user.profile?.udiseCode || '');
+      }
     }
-  }, [user]);
+  }, [user, isTeacher]);
 
   const currentStandard = user?.profile?.standard || 'Standard 8';
 
@@ -101,35 +117,65 @@ export const ProfilePage: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setMessage('');
+
+    if (isTeacher && selectedSubjects.length === 0) {
+      setMessage(
+        tr(
+          'કૃપા કરીને ઓછામાં ઓછો એક વિષય પસંદ કરો.',
+          'Please select at least one subject.',
+          'कृपया कम से कम एक विषय चुनें।'
+        )
+      );
+      return;
+    }
+
+    setSaving(true);
     try {
       const payload: any = {
-        name,
-        mobileNumber
+        name: name.trim()
       };
-      if (!isTeacher) {
+
+      if (isTeacher) {
+        payload.subjects = selectedSubjects;
+        payload.teacherSubject = selectedSubjects[0];
+        payload.teachingSubjects = selectedSubjects.join(', ');
+      } else {
+        // Student profile: include rollNumber, mobileNumber, udiseCode
+        payload.mobileNumber = mobileNumber;
         payload.rollNumber = rollNumber;
         payload.udiseCode = udiseCode;
       }
+
       const res = await api.put('/auth/profile', payload);
       if (res.data.user) {
         updateProfileState(res.data.user);
       } else {
         updateProfileState({
-          name,
-          mobileNumber,
-          profile: user?.profile
-            ? {
-                ...user.profile,
-                mobileNumber,
-                rollNumber,
-                udiseCode
-              }
-            : undefined
+          name: name.trim(),
+          ...(isTeacher && {
+            subjects: selectedSubjects,
+            teacherSubject: selectedSubjects[0],
+            teachingSubjects: selectedSubjects.join(', ')
+          }),
+          ...(!isTeacher && {
+            mobileNumber,
+            profile: user?.profile
+              ? {
+                  ...user.profile,
+                  mobileNumber,
+                  rollNumber,
+                  udiseCode
+                }
+              : undefined
+          })
         });
       }
-      setMessage(tr('પ્રોફાઇલ વિગતો સફળતાપૂર્વક અપડેટ થઈ!', 'Profile details updated successfully!'));
+      setMessage(
+        isTeacher
+          ? tr('શિક્ષક પ્રોફાઇલ વિગતો સફળતાપૂર્વક અપડેટ થઈ!', 'Teacher profile details updated successfully!')
+          : tr('પ્રોફાઇલ વિગતો સફળતાપૂર્વક અપડેટ થઈ!', 'Profile details updated successfully!')
+      );
     } catch (err: any) {
       console.error('Failed to update profile:', err);
       setMessage(err.response?.data?.error || tr('પ્રોફાઇલ અપડેટ કરવામાં નિષ્ફળ.', 'Failed to update profile.'));
@@ -146,24 +192,33 @@ export const ProfilePage: React.FC = () => {
   return (
     <div className="space-y-8 pb-12 max-w-2xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center space-x-3">
-          {isTeacher ? (
-            <ShieldCheck className="w-7 h-7 text-purple-400" />
-          ) : (
-            <User className="w-7 h-7 text-blue-400" />
-          )}
-          <span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center space-x-3">
+            {isTeacher ? (
+              <ShieldCheck className="w-7 h-7 text-purple-400" />
+            ) : (
+              <User className="w-7 h-7 text-blue-400" />
+            )}
+            <span>
+              {isTeacher
+                ? tr('શિક્ષક પ્રોફાઇલ વિગતો', 'Teacher Profile Details')
+                : tr('વિદ્યાર્થી પ્રોફાઇલ વિગતો', 'Student Profile Details')}
+            </span>
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
             {isTeacher
-              ? tr('શિક્ષક પ્રોફાઇલ વિગતો', 'Teacher Profile Details')
-              : tr('વિદ્યાર્થી પ્રોફાઇલ વિગતો', 'Student Profile Details')}
-          </span>
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          {isTeacher
-            ? tr('તમારા શિક્ષક એકાઉન્ટની વિગતો મેનેજ કરો', 'Manage your personal teacher account details')
-            : tr('તમારી વિદ્યાર્થી પ્રોફાઇલ માહિતી જુઓ અને મેનેજ કરો', 'View and manage your student profile information')}
-        </p>
+              ? tr('તમારા શિક્ષક એકાઉન્ટની વિગતો મેનેજ કરો', 'Manage your personal teacher account details')
+              : tr('તમારી વિદ્યાર્થી પ્રોફાઇલ માહિતી જુઓ અને મેનેજ કરો', 'View and manage your student profile information')}
+          </p>
+        </div>
+        <Link
+          to={isTeacher ? '/teacher-dashboard' : '/dashboard'}
+          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all shadow-sm shrink-0 w-fit"
+        >
+          <LayoutDashboard className="w-4 h-4 text-blue-400" />
+          <span>{tr('ડેશબોર્ડ પર જાઓ', 'Go to Dashboard', 'डैशबोर्ड पर जाएं')}</span>
+        </Link>
       </div>
 
       {message && (
@@ -176,18 +231,50 @@ export const ProfilePage: React.FC = () => {
       {/* Form Card */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
         <form onSubmit={handleSave} className="space-y-5">
-          {/* Role Indicator Badge */}
+          {/* Teacher Profile Summary Card */}
           {isTeacher && (
-            <div className="p-3.5 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <ShieldCheck className="w-4 h-4 text-purple-400" />
-                <span className="text-xs font-bold text-purple-300">
-                  {tr('ભૂમિકા: શિક્ષક / એડમિન', 'Role: Teacher / Admin')}
+            <div className="p-4 bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 border border-purple-500/30 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between border-b border-purple-500/20 pb-3">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-400">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-xs font-bold text-white tracking-wide uppercase">
+                      {tr('શિક્ષક પ્રોફાઇલ વિગતો', 'Teacher Profile Details')}
+                    </h2>
+                    <p className="text-[10px] text-purple-300">
+                      {tr('સત્તાવાર શૈક્ષણિક વિગતો', 'Official Academic Profile')}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-purple-500/20 text-purple-300 px-2.5 py-1 rounded-lg border border-purple-500/30 font-bold uppercase">
+                  {tr('સક્રિય શિક્ષક', 'Active Teacher')}
                 </span>
               </div>
-              <span className="text-[10px] bg-purple-500/20 text-purple-300 px-2.5 py-1 rounded-lg border border-purple-500/30 font-bold uppercase">
-                {tr('સક્રિય', 'Active')}
-              </span>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
+                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                  <div className="text-[10px] text-slate-400 font-medium">{tr('શિક્ષકનું નામ', 'Teacher Name')}</div>
+                  <div className="text-white font-bold truncate mt-0.5">{user?.name || name || '-'}</div>
+                </div>
+                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                  <div className="text-[10px] text-slate-400 font-medium">{tr('ઈમેલ', 'Email')}</div>
+                  <div className="text-white font-bold truncate mt-0.5" title={user?.email}>{user?.email || '-'}</div>
+                </div>
+                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                  <div className="text-[10px] text-slate-400 font-medium">{tr('ભૂમિકા', 'Role')}</div>
+                  <div className="text-purple-400 font-bold mt-0.5">{user?.role === 'ADMIN' ? tr('એડમિન / શિક્ષક', 'Admin / Teacher') : tr('શિક્ષક', 'Teacher')}</div>
+                </div>
+                <div className="bg-purple-900/20 p-2.5 rounded-xl border border-purple-500/30 col-span-2 sm:col-span-1">
+                  <div className="text-[10px] text-purple-300 font-medium">
+                    {getUserAssignedSubjects(user).length > 1 ? tr('સોંપાયેલ વિષયો', 'Assigned Subjects') : tr('સોંપાયેલ વિષય', 'Assigned Subject')}
+                  </div>
+                  <div className="text-purple-200 font-extrabold text-[11px] mt-0.5">
+                    {formatUserSubjectsDisplay(getUserAssignedSubjects(user), i18n.language) || tr('સોંપાયેલ નથી', 'Not Assigned')}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -329,22 +416,53 @@ export const ProfilePage: React.FC = () => {
             />
           </div>
 
-          {/* TEACHER PROFILE: Mobile Number */}
+          {/* TEACHER PROFILE: Multi-select Subjects (At least 1 required) */}
           {isTeacher && (
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase mb-2 flex items-center space-x-1.5">
-                <Phone className="w-4 h-4 text-purple-400" />
-                <span>{tr('મોબાઇલ નંબર', 'Mobile Number')}</span>
-              </label>
-              <input
-                type="tel"
-                value={mobileNumber}
-                onChange={(e) => setMobileNumber(e.target.value)}
-                placeholder={tr('દા.ત. 9876543210', 'e.g. 9876543210')}
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                {tr('શિક્ષકનો સંપર્ક નંબર', 'Teacher contact mobile number')}
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-slate-300 uppercase flex items-center space-x-1.5">
+                  <BookOpen className="w-4 h-4 text-purple-400" />
+                  <span>{tr('સોંપાયેલ વિષયો (તમે ભણાવતા વિષયો)', 'Assigned Subjects (Subjects You Teach)')}</span>
+                </label>
+                <span className="text-[10px] text-purple-400 font-bold bg-purple-500/10 border border-purple-500/30 px-2 py-0.5 rounded-full">
+                  {selectedSubjects.length} {tr('પસંદ કરેલ', 'Selected')}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                {TEACHER_SUBJECTS.map((subj) => {
+                  const isChecked = selectedSubjects.includes(subj.name);
+                  return (
+                    <label
+                      key={subj.name}
+                      className={`flex items-center space-x-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        isChecked
+                          ? 'bg-purple-950/40 border-purple-500 text-purple-100 shadow-sm'
+                          : 'bg-slate-800/60 border-slate-700/70 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setSelectedSubjects(prev =>
+                            prev.includes(subj.name) ? prev.filter(x => x !== subj.name) : [...prev, subj.name]
+                          );
+                        }}
+                        className="w-4 h-4 rounded border-slate-700 text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-600"
+                      />
+                      <span className="text-xs font-semibold">
+                        {getLocalizedSubjectName(subj.name, i18n.language)}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-2">
+                {tr(
+                  'તમે ઓછામાં ઓછો એક વિષય પસંદ કરવો ફરજિયાત છે. આ વિષયો તમારા હોમવર્ક, મટીરીયલ અને શંકા નિવારણમાં વપરાશે.',
+                  'At least one subject is required. These subjects will be used for your homework, study materials, and doubt resolution.'
+                )}
               </p>
             </div>
           )}

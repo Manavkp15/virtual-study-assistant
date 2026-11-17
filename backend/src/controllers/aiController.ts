@@ -2,7 +2,9 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { generateAIGuidance, askAIService } from '../ai/aiService';
 import { solveMultimodalQuestion } from '../ai/multimodalSolver';
+import { summarizePdfContent } from '../ai/pdfSummarizer';
 import { removeQueryFile } from '../services/fileStorage';
+import { solveStepByStepProblem } from '../ai/stepByStepSolver';
 
 export const getGuidance = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -78,3 +80,56 @@ export const askMultimodal = async (req: AuthenticatedRequest, res: Response) =>
     res.status(500).json({ error: 'Failed to process question. Please try again.' });
   }
 };
+
+export const summarizePdf = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { text, fileName, language, lang, detailLevel, includeQnA, includeGlossary } = req.body;
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'Text content from PDF or study notes is required.' });
+    }
+
+    const summary = await summarizePdfContent({
+      text: text.trim(),
+      fileName: fileName || 'Study_Material.pdf',
+      language: language || lang || 'auto',
+      detailLevel: detailLevel || 'standard',
+      includeQnA: includeQnA !== false,
+      includeGlossary: includeGlossary !== false
+    });
+
+    res.json({
+      success: true,
+      summary
+    });
+  } catch (error: any) {
+    console.error('summarizePdf error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF summary and notes.' });
+  }
+};
+
+export const solveStepByStep = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { problem, question, subject, language, lang, standard } = req.body;
+    const problemText = problem || question;
+    if (!problemText || typeof problemText !== 'string' || !problemText.trim()) {
+      return res.status(400).json({ error: 'Problem statement is required.' });
+    }
+
+    const selectedLang = language || lang || (req.query.lang as string) || 'en';
+    const solution = await solveStepByStepProblem({
+      problem: problemText.trim(),
+      subject,
+      language: selectedLang,
+      standard: standard || (req.user as any)?.standard || 'Standard 8'
+    });
+
+    res.json({
+      success: true,
+      solution
+    });
+  } catch (error: any) {
+    console.error('solveStepByStep error:', error);
+    res.status(500).json({ error: 'Failed to generate step-by-step solution.' });
+  }
+};
+

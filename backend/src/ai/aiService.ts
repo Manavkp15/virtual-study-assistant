@@ -2,6 +2,7 @@ import { prisma } from '../database/prisma';
 import { calculateStudentAnalytics } from '../algorithms/analyticsEngine';
 import { detectWeakTopics } from '../algorithms/weakTopicDetector';
 import { predictPerformance } from '../algorithms/predictionEngine';
+import { solveStepByStepProblem, StepByStepSolution } from './stepByStepSolver';
 
 export interface AIGuidanceSummary {
   personalizedFeedback: string;
@@ -244,6 +245,33 @@ export async function askAIService(userId: string, question: string, lang: strin
       ? weakData.strongTopics.map(s => `${sNameHindi[s.subjectName] || s.subjectName} (${s.topicName})`).join(', ')
       : weakData.strongTopics.map(s => `${s.subjectName} (${s.topicName})`).join(', '));
 
+  // A. Check if the question is a Mathematics or Science problem requiring Step-by-Step Solution
+  const isMathOrScienceProblem =
+    qLower.includes('solve') || qLower.includes('ઉકેલ') || qLower.includes('हल') ||
+    qLower.includes('quadratic') || qLower.includes('દ્વિઘાત') || qLower.includes('root') ||
+    qLower.includes('discriminant') || qLower.includes('વિવેચક') || qLower.includes('formula') ||
+    qLower.includes('force') || qLower.includes('mass') || qLower.includes('acceleration') ||
+    qLower.includes('speed') || qLower.includes('distance') || qLower.includes('time') ||
+    qLower.includes('pressure') || qLower.includes('reaction') || qLower.includes('reactant') ||
+    qLower.includes('derivative') || qLower.includes('sin') || qLower.includes('cos') || qLower.includes('tan') ||
+    qLower.includes('newton') || qLower.includes('ન્યૂટન') || qLower.includes('પ્રવેગ') || qLower.includes('બળ') ||
+    qLower.includes('=') || qLower.includes('+') || qLower.includes('²') || qLower.includes('^');
+
+  if (isMathOrScienceProblem && !qLower.includes('study today') && !qLower.includes('why am i weak') && !qLower.includes('test should i attempt')) {
+    try {
+      const sol = await solveStepByStepProblem({
+        problem: question,
+        language: lang,
+        standard: user?.profile?.standard || 'Standard 8'
+      });
+      if (sol && sol.steps && sol.steps.length > 0) {
+        return formatSolutionAsMarkdown(sol, lang);
+      }
+    } catch (e) {
+      console.warn('[AIService] Step-by-step problem solver warning:', e);
+    }
+  }
+
   // 1. "what should i study today" / "આજે શું અભ્યાસ કરવો" / "आज क्या पढ़ना चाहिए"
   if (
     qLower.includes('what should i study today') ||
@@ -343,3 +371,95 @@ export async function askAIService(userId: string, question: string, lang: strin
   }
   return `Hello ${user?.name || 'Student'}! Based on your live database telemetry (${analytics.testsCompleted} tests completed, ${analytics.accuracy}% accuracy, ${analytics.averagePercentage}% average percentage): Your current strong areas are ${strongList || 'General Grammar'}, while your primary focus area is ${weakList || 'Trigonometry'}. Predicted next test score is estimated at ${prediction.predictedNextScore}%. How can I assist your study plan today?`;
 }
+
+function formatSolutionAsMarkdown(sol: StepByStepSolution, lang: string): string {
+  const isGu = lang === 'gu';
+  const isHi = lang === 'hi';
+
+  const subName = isGu ? (sol.subjectGu || sol.subject) : (isHi ? (sol.subjectHi || sol.subject) : sol.subject);
+  const topicName = isGu ? (sol.topicGu || sol.topic) : (isHi ? (sol.topicHi || sol.topic) : sol.topic);
+  const reasoning = isGu ? (sol.conceptReasoningGu || sol.conceptReasoning) : (isHi ? (sol.conceptReasoningHi || sol.conceptReasoning) : sol.conceptReasoning);
+  const finalAns = isGu ? (sol.finalAnswerGu || sol.finalAnswer) : (isHi ? (sol.finalAnswerHi || sol.finalAnswer) : sol.finalAnswer);
+  const takeaway = isGu ? (sol.keyTakeawayGu || sol.keyTakeaway) : (isHi ? (sol.keyTakeawayHi || sol.keyTakeaway) : sol.keyTakeaway);
+
+  let md = `## 📐 ${subName}: ${topicName}\n\n`;
+  if (reasoning) {
+    md += `> 💡 **${isGu ? 'સિદ્ધાંત અને પદ્ધતિ (Reasoning & Concept)' : (isHi ? 'अवधारणा और सिद्धांत' : 'Concept & Strategy')}:**\n> ${reasoning}\n\n`;
+  }
+
+  if (sol.formulas && sol.formulas.length > 0) {
+    md += `### 📌 ${isGu ? 'મહત્વપૂર્ણ સૂત્રો (Key Formulas)' : (isHi ? 'महत्वपूर्ण सूत्र' : 'Important Formulas')}\n`;
+    sol.formulas.forEach(f => {
+      md += `- \`${f}\`\n`;
+    });
+    md += `\n`;
+  }
+
+  if (sol.givenValues && Object.keys(sol.givenValues).length > 0) {
+    md += `**${isGu ? 'આપેલ માહિતી (Given Values)' : (isHi ? 'दी गई जानकारी' : 'Given Values')}:** ` +
+      Object.entries(sol.givenValues).map(([k, v]) => `${k} = ${v}`).join(', ') + '\n\n';
+  }
+
+  md += `### 🔢 ${isGu ? 'ક્રમબદ્ધ ઉકેલ (Step-by-Step Solution)' : (isHi ? 'क्रमबद्ध हल' : 'Step-by-Step Solution')}\n\n`;
+  sol.steps.forEach(st => {
+    const title = isGu ? (st.titleGu || st.title) : (isHi ? (st.titleHi || st.title) : st.title);
+    const why = isGu ? (st.whyGu || st.why) : (isHi ? (st.whyHi || st.why) : st.why);
+    const calc = st.calculation;
+    const inter = isGu ? (st.intermediateResultGu || st.intermediateResult) : (isHi ? (st.intermediateResultHi || st.intermediateResult) : st.intermediateResult);
+
+    md += `**${isGu ? 'પગલું' : (isHi ? 'चरण' : 'Step')} ${st.stepNumber}: ${title}**\n`;
+    md += `- *${isGu ? 'શા માટે આ પગલું' : (isHi ? 'यह चरण क्यों' : 'Why this step')}*: ${why}\n`;
+    if (calc) {
+      md += `- *${isGu ? 'ગણતરી' : (isHi ? 'गणना' : 'Calculation')}*: \`${calc.replace(/\n/g, '; ')}\`\n`;
+    }
+    if (inter) {
+      md += `- *${isGu ? 'પરિણામ' : (isHi ? 'परिणाम' : 'Result')}*: ${inter}\n`;
+    }
+    md += `\n`;
+  });
+
+  if (sol.verification) {
+    const ver = isGu ? (sol.verificationGu || sol.verification) : (isHi ? (sol.verificationHi || sol.verification) : sol.verification);
+    md += `✅ *${isGu ? 'ચકાસણી' : (isHi ? 'सत्यापन' : 'Verification')}*: ${ver}\n\n`;
+  }
+
+  md += `### 🎯 ${isGu ? 'અંતિમ જવાબ (Final Answer)' : (isHi ? 'अंतिम उत्तर' : 'Final Answer')}\n`;
+  md += `> **✨ ${finalAns} ✨**\n\n`;
+
+  if (takeaway) {
+    md += `💡 *${isGu ? 'સ્વતંત્ર ઉકેલ માટે માર્ગદર્શન' : (isHi ? 'स्वतंत्र हल हेतु सुझाव' : 'How to Solve Similar Problems Independently')}*: ${takeaway}\n\n`;
+  }
+
+  // Common Mistakes & Pitfalls
+  const mistakes = isGu ? (sol.commonMistakesGu || sol.commonMistakes) : (isHi ? (sol.commonMistakesHi || sol.commonMistakes) : sol.commonMistakes);
+  if (mistakes && mistakes.length > 0) {
+    md += `### ⚠️ ${isGu ? 'સામાન્ય ભૂલો અને સાવચેતી (Common Mistakes to Avoid)' : (isHi ? 'सामान्य गलतियाँ और सावधानियाँ' : 'Common Mistakes to Avoid')}\n`;
+    mistakes.forEach(m => {
+      md += `- ❌ ${m}\n`;
+    });
+    md += `\n`;
+  }
+
+  // Alternative Method / Shortcut
+  const alt = isGu ? (sol.alternativeMethodGu || sol.alternativeMethod) : (isHi ? (sol.alternativeMethodHi || sol.alternativeMethod) : sol.alternativeMethod);
+  if (alt) {
+    md += `### ⚡ ${isGu ? 'વૈકલ્પિક પદ્ધતિ / શોર્ટકટ' : (isHi ? 'वैकल्पिक विधि / शॉर्टकट' : 'Alternative Method / Shortcut')}: ${alt.title}\n`;
+    md += `> ${alt.description}\n`;
+    if (alt.calculation) {
+      md += `> \`${alt.calculation}\`\n`;
+    }
+    md += `\n`;
+  }
+
+  // Practice Challenge
+  const practice = isGu ? (sol.practiceChallengeGu || sol.practiceChallenge) : (isHi ? (sol.practiceChallengeHi || sol.practiceChallenge) : sol.practiceChallenge);
+  if (practice) {
+    md += `### ✍️ ${isGu ? 'સ્વ-પ્રયાસ માટે સમાન પ્રશ્ન (Try It Yourself)' : (isHi ? 'स्वयं अभ्यास हेतु प्रश्न' : 'Try It Yourself Challenge')}\n`;
+    md += `**${isGu ? 'પ્રશ્ન' : (isHi ? 'प्रश्न' : 'Problem')}:** ${practice.problem}\n`;
+    md += `- 🔍 *${isGu ? 'સંકેત (Hint)' : (isHi ? 'संकेत' : 'Hint')}*: ${practice.hint}\n`;
+    md += `- 🎯 *${isGu ? 'જવાબ' : (isHi ? 'उत्तर' : 'Answer')}*: \`${practice.answer}\`\n`;
+  }
+
+  return md;
+}
+

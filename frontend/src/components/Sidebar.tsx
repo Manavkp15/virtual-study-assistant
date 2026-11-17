@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useParentMode } from '../context/ParentModeContext';
 import { useTranslation } from 'react-i18next';
 import { tr } from '../utils/tr';
 import {
   LayoutDashboard,
   BookOpen,
+  BookCheck,
   CalendarCheck,
   FileCheck2,
   AlertTriangle,
@@ -20,9 +22,6 @@ import {
   ClipboardCheck,
   Library,
   Video,
-  Volume2,
-  Settings,
-  Bell,
   Users,
   Bookmark,
   Tag,
@@ -31,7 +30,14 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
-  Sparkles
+  Sparkles,
+  Headphones,
+  Timer,
+  CheckSquare,
+  FileCheck,
+  BookA,
+  FileQuestion,
+  TrendingUp
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -72,13 +78,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { user, logout } = useAuth();
   const { t } = useTranslation('common');
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isParentMode, exitParentMode } = useParentMode();
 
-  // Effective role: strictly obeys user.role unless user is an ADMIN who switched perspective
-  const effectiveRole: 'STUDENT' | 'TEACHER' | 'ADMIN' =
-    user?.role === 'STUDENT'
+  // Effective role: strictly obeys user.role unless user is an ADMIN who switched perspective,
+  // or if student user has activated PARENT mode!
+  const effectiveRole: 'STUDENT' | 'TEACHER' | 'ADMIN' | 'PARENT' =
+    isParentMode && user?.role === 'STUDENT'
+      ? 'PARENT'
+      : user?.role === 'STUDENT'
       ? 'STUDENT'
       : user?.role === 'TEACHER'
       ? 'TEACHER'
+      : (user?.role as any) === 'PARENT'
+      ? 'PARENT'
       : activeRoleView || 'ADMIN';
 
   // Close mobile drawer on Escape key
@@ -120,18 +133,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return false;
   };
 
-  // Build menus according to the exact user role
   const getNavGroups = (): MenuGroup[] => {
+    if (effectiveRole === 'PARENT') {
+      return [
+        {
+          title: tr('વાલી પોર્ટલ', 'Parent Portal', 'अभिभावक पोर्टल'),
+          items: [
+            { name: tr('સમગ્ર પ્રગતિ & રિપોર્ટ', 'Overview & Report Card', 'समग्र प्रगति & रिपोर्ट'), path: '/parent-dashboard', icon: LayoutDashboard },
+            { name: tr('ગૃહકાર્ય અને ચકાસણી', 'Homework & Verification', 'गृहकार्य और जाँच'), path: '/parent/homework', icon: ClipboardCheck },
+            { name: tr('પરીક્ષા પરિણામો', 'Tests & Exam Results', 'परीक्षा परिणाम'), path: '/parent-dashboard?tab=tests', icon: FileCheck2 },
+            { name: tr('અભ્યાસ સમય & ટેવો', 'Study Habits & Time', 'अध्ययन समय और आदतें'), path: '/parent-dashboard?tab=habits', icon: Timer },
+            { name: tr('અભ્યાસ સાહિત્ય', 'Study Materials', 'अध्ययन सामग्री'), path: '/study-materials', icon: Library },
+            { name: tr('વિડિઓ લેક્ચર્સ', 'Video Lectures', 'वीडियो लेक्चर्स'), path: '/video-lectures', icon: Video },
+            { name: tr('વાલી નિયંત્રણ અને પિન', 'Parent Controls & PIN', 'अभिभावक नियंत्रण और पिन'), path: '/parent-dashboard?tab=settings', icon: ShieldCheck },
+          ]
+        },
+        {
+          title: tr('મોડ સ્વિચ', 'Mode Switch', 'मोड स्विच'),
+          items: [
+            {
+              name: tr('વિદ્યાર્થી મોડ પર પાછા ફરો', 'Return to Student Mode', 'विद्यार्थी मोड पर वापस जाएं'),
+              icon: LogOut,
+              onClick: () => {
+                exitParentMode();
+                navigate('/dashboard');
+              }
+            }
+          ]
+        },
+        {
+          title: tr('ખાતું', 'Account', 'खाता'),
+          items: [
+            { name: tr('પ્રોફાઇલ', 'Profile', 'मेरी प्रोफ़ाइल'), path: '/profile', icon: User },
+          ]
+        }
+      ];
+    }
+
     if (effectiveRole === 'STUDENT') {
       return [
         {
           title: tr('મુખ્ય મેનૂ', 'Main Menu', 'मुख्य मेनू'),
           items: [
             { name: tr('ડેશબોર્ડ', 'Dashboard', 'डैशबोर्ड'), path: '/dashboard', icon: LayoutDashboard },
+
+            { name: tr('NCERT પ્રમાણિત જ્ઞાનકોશ', 'NCERT Knowledge Base', 'एनसीईआरटी ज्ञानकोश'), path: '/ncert-knowledge', icon: BookCheck },
             { name: tr('અભ્યાસ સાહિત્ય', 'Study Materials', 'अध्ययन सामग्री'), path: '/study-materials', icon: Library },
             { name: tr('પરીક્ષાઓ / ટેસ્ટ', 'Tests / Exams', 'परीक्षाएं और अभ्यास'), path: '/tests', icon: FileCheck2 },
             { name: tr('ગૃહકાર્ય', 'Homework', 'गृहकार्य'), path: '/homework', icon: FileText },
-            { name: tr('શંકા નિવારણ કેન્દ્ર', 'Doubt Center', 'संदेह निवारण केंद्र'), path: '/mistake-book', icon: AlertTriangle },
+            { name: tr('ભૂલ પુસ્તિકા', 'Mistake Book', 'मिस्टेक बुक'), path: '/mistake-book', icon: AlertTriangle },
             { name: tr('અભ્યાસ યોજના', 'Study Plan', 'अध्ययन योजना'), path: '/study-plan', icon: CalendarCheck },
             { name: tr('પ્રદર્શન / વિશ્લેષણ', 'Performance / Analytics', 'प्रदर्शन और विश्लेषण'), path: '/analytics', icon: BarChart3 },
           ]
@@ -140,22 +190,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           title: tr('શિક્ષણ સાધનો', 'Learning Tools', 'अध्ययन उपकरण'),
           items: [
             { name: tr('વિડિઓ લેક્ચર્સ', 'Video Lectures', 'वीडियो लेक्चर्स'), path: '/video-lectures', icon: Video },
+            { name: tr('AI શબ્દકોશ', 'AI Dictionary', 'एआई शब्दकोश'), path: '/student/ai-dictionary', icon: BookA },
             { name: tr('AI મદદગાર', 'AI Assistant', 'एआई अध्ययन सहायक'), path: '/ai-assistant', icon: Bot },
-            { name: tr('PDF અવાજ વાચક', 'PDF Voice Reader', 'PDF वॉइस रीडर'), path: '/text-to-speech', icon: Volume2 },
+            { name: tr('પગલાંવાર સોલ્વર', 'Step-by-Step Solver', 'स्टेप-बाय-स्टेप सॉल्वर'), path: '/step-by-step-solver', icon: Sparkles },
+            { name: tr('PDF વૉઇસ રીડર & TTS', 'PDF Voice Reader & TTS', 'PDF वॉइस रीडर और TTS'), path: '/text-to-speech', icon: Headphones },
+            { name: tr('પોમોડોરો ટાઈમર', 'Pomodoro Timer', 'पोमोडोरो टाइमર'), path: '/pomodoro', icon: Timer },
             { name: tr('વિષયો', 'Subjects', 'विषय'), path: '/subjects', icon: BookOpen }
           ]
         },
         {
-          title: tr('ખાતું અને સેટિંગ્સ', 'Account & Settings', 'खाता और सेटिंग्स'),
+          title: tr('ખાતું', 'Account', 'खाता'),
           items: [
-            {
-              name: tr('સૂચનાઓ', 'Notifications', 'सूचनाएं'),
-              icon: Bell,
-              onClick: onOpenNotifications,
-              badge: unreadCount > 0 ? unreadCount : undefined
-            },
             { name: tr('પ્રોફાઇલ', 'Profile', 'मेरी प्रोफ़ाइल'), path: '/profile', icon: User },
-            { name: tr('સેટિંગ્સ', 'Settings', 'सेटिंग्स'), path: '/profile', icon: Settings },
           ]
         }
       ];
@@ -168,25 +214,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           items: [
             { name: tr('ડેશબોર્ડ', 'Dashboard', 'डैशबोर्ड'), path: '/teacher-dashboard', icon: LayoutDashboard },
             { name: tr('અભ્યાસ સાહિત્ય', 'Study Materials', 'अध्ययन सामग्री'), path: '/teacher/materials', icon: Library },
-            { name: tr('ગૃહકાર્ય', 'Homework', 'गृहकार्य'), path: '/teacher/homework', icon: FileText },
-            { name: tr('ગૃહકાર્ય ચકાસણી', 'Homework Checking', 'गृहकार्य जाँच'), path: '/teacher/homework', icon: ClipboardCheck },
+            { name: tr('ગૃહકાર્ય અને ચકાસણી', 'Homework & Checking', 'गृहकार्य और जाँच'), path: '/teacher/homework', icon: ClipboardCheck },
             { name: tr('વિદ્યાર્થી શંકાઓ', 'Student Doubts', 'विद्यार्थी संदेह'), path: '/mistake-book', icon: AlertTriangle },
             { name: tr('વિદ્યાર્થીઓ', 'Students', 'विद्यार्थी'), path: '/teacher-dashboard?tab=students', icon: GraduationCap },
             { name: tr('પ્રદર્શન / વિશ્લેષણ', 'Performance / Analytics', 'प्रदर्शन और विश्लेषण'), path: '/analytics', icon: BarChart3 },
-            { name: tr('વિડિઓ લેક્ચર અપલોડ', 'Video Lectures', 'वीडियो लेक्चर्स'), path: '/teacher/video-lectures', icon: Video }
+            { name: tr('વિડિઓ લેક્ચર અપલોડ', 'Video Lectures', 'वीडियो लेक्चर्स'), path: '/teacher/video-lectures', icon: Video },
+            { name: tr('પગલાંવાર સોલ્વર', 'Step-by-Step Solver', 'स्टेप-बाय-स्टेप सॉल्वर'), path: '/step-by-step-solver', icon: Sparkles }
           ]
         },
         {
-          title: tr('ખાતું અને સેટિંગ્સ', 'Account & Settings', 'खाता और सेटिंग्स'),
+          title: tr('ખાતું', 'Account', 'खाता'),
           items: [
-            {
-              name: tr('સૂચનાઓ', 'Notifications', 'सूचनाएं'),
-              icon: Bell,
-              onClick: onOpenNotifications,
-              badge: unreadCount > 0 ? unreadCount : undefined
-            },
             { name: tr('પ્રોફાઇલ', 'Profile', 'मेरी प्रोफ़ाइल'), path: '/profile', icon: User },
-            { name: tr('સેટિંગ્સ', 'Settings', 'सेटिंग्स'), path: '/profile', icon: Settings },
           ]
         }
       ];
@@ -201,30 +240,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
           { name: tr('વિદ્યાર્થીઓ', 'Students', 'विद्यार्थी'), path: '/teacher-dashboard?tab=students', icon: GraduationCap },
           { name: tr('શિક્ષકો', 'Teachers', 'शिक्षक'), path: '/teacher-dashboard?tab=teachers', icon: Users },
           { name: tr('વિષયો', 'Subjects', 'विषय'), path: '/teacher-dashboard?tab=subjects', icon: BookOpen },
-          { name: tr('પ્રકરણો', 'Chapters', 'अध्याय'), path: '/teacher-dashboard?tab=chapters', icon: Bookmark },
+          { name: tr('પ્રશ્ન બેંક', 'Question Bank', 'प्रश्न बैंक'), path: '/teacher-dashboard?tab=questions', icon: FileQuestion },
+          { name: tr('પ્રકરણો', 'Chapters', 'અध्याय'), path: '/teacher-dashboard?tab=chapters', icon: Bookmark },
           { name: tr('મુદ્દાઓ', 'Topics', 'टॉपिक'), path: '/teacher-dashboard?tab=topics', icon: Tag },
           { name: tr('અભ્યાસ સાહિત્ય', 'Study Materials', 'अध्ययन सामग्री'), path: '/teacher/materials', icon: Library },
-          { name: tr('ગૃહકાર્ય', 'Homework', 'गृहकार्य'), path: '/teacher/homework', icon: FileText },
+          { name: tr('ગૃહકાર્ય અને ચકાસણી', 'Homework & Checking', 'गृहकार्य और जाँच'), path: '/teacher/homework', icon: ClipboardCheck },
+          { name: tr('ગૃહકાર્ય એનાલિટિક્સ', 'AI Homework Analytics', 'गृहकार्य एनालिटिक्स'), path: '/teacher-dashboard?tab=homework', icon: TrendingUp },
           { name: tr('વપરાશકર્તાઓ', 'Users', 'उपयोगकर्ता'), path: '/teacher-dashboard?tab=users', icon: UserCheck },
           { name: tr('એનાલિટિક્સ', 'Analytics', 'एनालिटिक्स'), path: '/analytics', icon: BarChart3 },
+          { name: tr('પગલાંવાર સોલ્વર', 'Step-by-Step Solver', 'स्टेप-बाय-स्टेप सॉल्वर'), path: '/step-by-step-solver', icon: Sparkles }
         ]
       },
       {
-        title: tr('સિસ્ટમ અને સેટિંગ્સ', 'System & Settings', 'सिस्टम और सेटिंग्स'),
+        title: tr('ખાતું', 'Account', 'खाता'),
         items: [
-          {
-            name: tr('સૂચનાઓ', 'Notifications', 'सूचनाएं'),
-            icon: Bell,
-            onClick: onOpenNotifications,
-            badge: unreadCount > 0 ? unreadCount : undefined
-          },
-          { name: tr('સેટિંગ્સ', 'Settings', 'सेटिंग्स'), path: '/profile', icon: Settings },
+            { name: tr('પ્રોફાઇલ', 'Profile', 'मेरी प्रोफ़ाइल'), path: '/profile', icon: User },
         ]
       }
     ];
   };
 
-  const navGroups = getNavGroups();
+  const navGroups = getNavGroups().filter(group => group.items && group.items.length > 0);
 
   // Render navigation item helper
   const renderItem = (item: MenuItem, isCollapsed: boolean, isMobile: boolean) => {
@@ -354,8 +390,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <button
             onClick={onCloseMobile}
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer flex items-center justify-center"
             aria-label="Close navigation drawer"
+            title={tr('નેવિગેશન બંધ કરો', 'Close Navigation', 'नेविगेशन बंद करें')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -370,18 +407,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {effectiveRole}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-800/80 rounded-xl border border-slate-700/60">
-              <button
-                type="button"
-                onClick={() => onSwitchRoleView('ADMIN')}
-                className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
-                  effectiveRole === 'ADMIN'
-                    ? 'bg-purple-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {tr('એડમિન', 'Admin', 'एडमिन')}
-              </button>
+            <div className={`grid ${effectiveRole === 'ADMIN' ? 'grid-cols-2' : 'grid-cols-1'} gap-1.5 p-1 bg-slate-800/80 rounded-xl border border-slate-700/60`}>
+              {effectiveRole === 'ADMIN' && (
+                <button
+                  type="button"
+                  onClick={() => onSwitchRoleView('ADMIN')}
+                  className="py-1.5 px-2 rounded-lg text-xs font-bold transition-all bg-purple-600 text-white shadow-sm"
+                >
+                  {tr('એડમિન', 'Admin', 'एडमिन')}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onSwitchRoleView('TEACHER')}
@@ -412,7 +447,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* Drawer Footer */}
-        <div className="p-3 border-t border-slate-800 bg-slate-900/90 shrink-0">
+        <div className="p-3 border-t border-slate-800 bg-slate-900/90 shrink-0 space-y-2">
+          {user?.role === 'STUDENT' && isParentMode && (
+            <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-between">
+              <div className="flex items-center space-x-1.5 text-purple-300 font-bold text-xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                <span>{tr('વાલી મોડ સક્રિય', 'Parent Mode Active', 'अभिभावक मोड सक्रिय')}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onCloseMobile();
+                  exitParentMode();
+                  navigate('/dashboard');
+                }}
+                className="text-[11px] font-bold text-rose-400 hover:text-rose-300 underline cursor-pointer"
+              >
+                {tr('બહાર નીકળો', 'Exit', 'बाहर निकलें')}
+              </button>
+            </div>
+          )}
           <div className="flex items-center justify-between bg-slate-800/50 p-2.5 rounded-xl border border-slate-800">
             <div className="flex items-center space-x-2.5 overflow-hidden">
               {user?.avatarUrl ? (
@@ -486,7 +540,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 onClick={onToggleDesktopCollapse}
-                className="p-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                className="flex items-center justify-center p-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                 title={tr('સાઇડબાર નાનું કરો', 'Collapse Sidebar', 'साइडबार संक्षिप्त करें')}
                 aria-label={tr('સાઇડબાર નાનું કરો', 'Collapse Sidebar', 'साइडबार संक्षिप्त करें')}
               >
@@ -507,18 +561,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {effectiveRole}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-1 p-0.5 bg-slate-800/80 rounded-lg border border-slate-700/60">
-                <button
-                  type="button"
-                  onClick={() => onSwitchRoleView('ADMIN')}
-                  className={`py-1 px-2 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                    effectiveRole === 'ADMIN'
-                      ? 'bg-purple-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Admin
-                </button>
+              <div className={`grid ${effectiveRole === 'ADMIN' ? 'grid-cols-2' : 'grid-cols-1'} gap-1 p-0.5 bg-slate-800/80 rounded-lg border border-slate-700/60`}>
+                {effectiveRole === 'ADMIN' && (
+                  <button
+                    type="button"
+                    onClick={() => onSwitchRoleView('ADMIN')}
+                    className="py-1 px-2 rounded-md text-[11px] font-bold transition-all cursor-pointer bg-purple-600 text-white shadow-sm"
+                  >
+                    Admin
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => onSwitchRoleView('TEACHER')}
@@ -565,10 +617,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={onToggleDesktopCollapse}
                 title={tr('સાઇડબાર મોટું કરો', 'Expand Sidebar', 'साइडबार विस्तृत करें')}
                 aria-label={tr('સાઇડબાર મોટું કરો', 'Expand Sidebar', 'साइडबार विस्तृत करें')}
-                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer flex items-center justify-center"
               >
                 <PanelLeftOpen className="w-5 h-5 text-blue-400" />
               </button>
+
+              {user?.role === 'STUDENT' && isParentMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    exitParentMode();
+                    navigate('/dashboard');
+                  }}
+                  title={tr('વાલી મોડમાંથી બહાર નીકળો', 'Exit Parent Mode', 'अभिभावक मोड से बाहर निकलें')}
+                  className="p-2 rounded-xl bg-purple-600 text-white shadow-md shadow-purple-600/30 transition-all cursor-pointer"
+                >
+                  <Users className="w-4 h-4" />
+                </button>
+              )}
 
               <NavLink
                 to="/profile"
@@ -600,7 +666,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-between bg-slate-800/50 p-2.5 rounded-xl border border-slate-800">
+            <div>
+              {user?.role === 'STUDENT' && isParentMode && (
+                <div className="mb-2">
+                  <div className="p-2 rounded-xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-between shadow-xs">
+                    <div className="flex items-center space-x-1.5 text-purple-300 font-bold text-xs truncate">
+                      <ShieldCheck className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                      <span className="truncate">{tr('વાલી મોડ સક્રિય', 'Parent Mode Active', 'अभिभावक मोड सक्रिय')}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        exitParentMode();
+                        navigate('/dashboard');
+                      }}
+                      className="text-[11px] font-bold text-rose-400 hover:text-rose-300 underline cursor-pointer shrink-0 ml-1"
+                    >
+                      {tr('બહાર નીકળો', 'Exit', 'बाहर निकलें')}
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center justify-between bg-slate-800/50 p-2.5 rounded-xl border border-slate-800">
               <NavLink to="/profile" className="flex items-center space-x-2.5 overflow-hidden group flex-1">
                 {user?.avatarUrl ? (
                   <img
@@ -627,6 +714,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <LogOut className="w-4 h-4" />
               </button>
+            </div>
             </div>
           )}
         </div>

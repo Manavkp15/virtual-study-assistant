@@ -12,7 +12,9 @@ import {
   deleteQuestion,
   createTest,
   deleteStudent,
-  clearStudentProfiles
+  clearStudentProfiles,
+  getTeachers,
+  updateTeacherSubject
 } from '../controllers/adminController';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
 
@@ -21,6 +23,8 @@ const router = Router();
 router.use(authenticateToken, requireAdmin);
 
 router.get('/overview', getAdminOverview);
+router.get('/teachers', getTeachers);
+router.put('/teachers/:id/subject', updateTeacherSubject);
 router.delete('/students/:id', deleteStudent);
 router.delete('/students', clearStudentProfiles);
 router.post('/subjects', createSubject);

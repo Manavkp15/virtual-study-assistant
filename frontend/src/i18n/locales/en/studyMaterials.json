@@ -3,8 +3,8 @@
   "subtitle": "Browse, download, and review verified learning materials, notes, and video lectures uploaded by your teachers",
   "teacherTitle": "Study Material Management",
   "teacherSubtitle": "Upload PDF notes, link educational video lessons, organize by chapter & topic, and monitor student engagement",
-  "addMaterial": "Add Study Material",
-  "editMaterial": "Edit Study Material",
+  "addMaterial": "Add Material",
+  "editMaterial": "Edit Material",
   "backToMaterials": "Back to Materials",
   "tabs": {
     "allMaterials": "All Materials",
@@ -68,7 +68,7 @@
     "replacePdf": "Replace PDF"
   },
   "form": {
-    "title": "Material Title (English)",
+    "title": "Material Title",
     "titlePlaceholder": "e.g. Algebra – Linear Equations Master Guide",
     "titleGu": "Material Title (Gujarati)",
     "titleGuPlaceholder": "દા.ત. બીજગણિત – સુરેખ સમીકરણો માસ્ટર માર્ગદર્શિકા",
@@ -80,7 +80,7 @@
     "selectChapter": "Select Chapter",
     "topic": "Topic",
     "selectTopic": "Select Topic",
-    "description": "Description & Learning Objectives (English)",
+    "description": "Description & Learning Objectives",
     "descriptionPlaceholder": "Provide a brief description of what students will learn from this material...",
     "descriptionGu": "Description (Gujarati)",
     "descriptionGuPlaceholder": "આ અભ્યાસ સામગ્રીમાંથી વિદ્યાર્થીઓ શું શીખશે તેનું વર્ણન...",

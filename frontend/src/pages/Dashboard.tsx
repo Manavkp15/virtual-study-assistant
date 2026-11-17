@@ -5,6 +5,7 @@ import { DashboardData } from '../types';
 import { SummaryCard } from '../components/SummaryCard';
 import { useTranslation } from 'react-i18next';
 import { tr, trSubject, trItem } from '../utils/tr';
+import { useDailyStudyHeadline } from '../utils/dailyStudyQuotes';
 import {
   Trophy,
   Target,
@@ -14,7 +15,6 @@ import {
   AlertTriangle,
   Flame,
   Sparkles,
-  BookOpen,
   ArrowRight,
   PlayCircle,
   BarChart2,
@@ -22,13 +22,10 @@ import {
   FileText,
   Library,
   Video,
-  HeartHandshake,
   History,
   FileSpreadsheet
 } from 'lucide-react';
 import { exportStudentAnalyticsExcel } from '../utils/excelExport';
-import { RemedialSupportModal } from '../components/RemedialSupportModal';
-import { RemedialHistoryModal } from '../components/RemedialHistoryModal';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -41,42 +38,43 @@ import {
 
 export const Dashboard: React.FC = () => {
   const { t, i18n } = useTranslation(['dashboard', 'common']);
+  const dailyHeadline = useDailyStudyHeadline();
   const [data, setData] = useState<DashboardData | null>(null);
   const [hwSummary, setHwSummary] = useState<any | null>(null);
   const [matSummary, setMatSummary] = useState<any | null>(null);
   const [recommendedMaterials, setRecommendedMaterials] = useState<any[]>([]);
   const [videoCount, setVideoCount] = useState<number>(0);
-  const [remedialState, setRemedialState] = useState<any | null>(null);
-  const [isRemedialOpen, setIsRemedialOpen] = useState(false);
-  const [isRemedialHistoryOpen, setIsRemedialHistoryOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const fetchDashboard = async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const [res, hwRes, matRes, recRes, vidRes] = await Promise.all([
+        api.get('/student/dashboard', {
+          params: { lang: i18n.language || 'en' }
+        }),
+        api.get('/homework/student/summary').catch(() => ({ data: { summary: null, subjectPerformance: [] } })),
+        api.get('/study-materials/student/summary').catch(() => ({ data: { summary: null } })),
+        api.get('/study-materials/student/recommendations').catch(() => ({ data: { recommendations: [] } })),
+        api.get('/video-lectures/student').catch(() => ({ data: { lectures: [] } }))
+      ]);
+      setData(res.data);
+      setHwSummary(hwRes.data || null);
+      setMatSummary(matRes.data?.summary || null);
+      setRecommendedMaterials(recRes.data?.recommendations || []);
+      setVideoCount(vidRes.data?.lectures?.length || 0);
+    } catch (err: any) {
+      console.error('Failed to load dashboard data:', err);
+      setFetchError(err.response?.data?.error || tr('ડેશબોર્ડ લોડ કરવામાં ભૂલ આવી. કૃપા કરીને પુનઃપ્રયાસ કરો.', 'Failed to load dashboard. Please try again.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const [res, hwRes, matRes, recRes, vidRes, remRes] = await Promise.all([
-          api.get('/student/dashboard', {
-            params: { lang: i18n.language || 'en' }
-          }),
-          api.get('/homework/student/summary').catch(() => ({ data: { summary: null, subjectPerformance: [] } })),
-          api.get('/study-materials/student/summary').catch(() => ({ data: { summary: null } })),
-          api.get('/study-materials/student/recommendations').catch(() => ({ data: { recommendations: [] } })),
-          api.get('/video-lectures/student').catch(() => ({ data: { lectures: [] } })),
-          api.get('/remedial/active').catch(() => ({ data: { hasActiveRemedial: false } }))
-        ]);
-        setData(res.data);
-        setHwSummary(hwRes.data || null);
-        setMatSummary(matRes.data.summary || null);
-        setRecommendedMaterials(recRes.data.recommendations || []);
-        setVideoCount(vidRes.data.lectures?.length || 0);
-        setRemedialState(remRes.data || null);
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchDashboard();
   }, [i18n.language]);
 
@@ -91,9 +89,57 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  if (!data) return null;
+  if (fetchError || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-3xl text-center max-w-md mx-auto my-12 space-y-4">
+        <div className="p-3 bg-red-500/10 text-red-400 rounded-2xl border border-red-500/20">
+          <AlertTriangle className="w-8 h-8" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-white tracking-tight">
+            {tr('ડેશબોર્ડ લોડ થઈ શક્યું નથી', 'Unable to load Dashboard')}
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            {fetchError || tr('ડેટા મેળવવામાં મુશ્કેલી પડી. કૃપા કરીને પુનઃપ્રયાસ બટન દબાવો.', 'There was an issue fetching dashboard data. Please try again.')}
+          </p>
+        </div>
+        <button
+          onClick={fetchDashboard}
+          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center space-x-2 cursor-pointer"
+        >
+          <span>{tr('ફરી પ્રયાસ કરો', 'Try Again')}</span>
+        </button>
+      </div>
+    );
+  }
 
-  const { summaryCards, analyticsOverview, weakTopics, recommendedTests, aiGuidance, recentTestResults } = data;
+  const {
+    summaryCards = {
+      overallScore: 0,
+      averagePercentage: 0,
+      accuracy: 0,
+      testsCompleted: 0,
+      strongTopicsCount: 0,
+      weakTopicsCount: 0,
+      improvementPercentage: 0,
+      studyStreak: 1
+    },
+    analyticsOverview = {
+      recentTrends: [],
+      subjectPerformance: [],
+      difficultyPerformance: []
+    },
+    weakTopics = [],
+    recommendedTests = [],
+    aiGuidance = {
+      motivationMessage: '',
+      personalizedFeedback: '',
+      learningPriorities: [],
+      studyRecommendations: []
+    },
+    recentTestResults = []
+  } = data;
+
 
   const handleExportExcel = () => {
     if (!data?.analyticsOverview) return;
@@ -110,114 +156,20 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6 pb-12">
       {/* Clean Focus Header */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-sm">
-        <div className="space-y-1.5 max-w-3xl">
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1.5 max-w-2xl">
           <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-semibold border border-blue-500/20">
             <Sparkles className="w-3.5 h-3.5" />
             <span>{tr('AI અભ્યાસ માર્ગદર્શક', 'AI Study Guide')}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            {tr('આજના પાઠ શીખવા માટે તૈયાર છો? તમારી કુશળતા વધારવાનો સમય!', "Ready to dive into today's lessons? Time to level up your skills!")}
+            {tr(dailyHeadline.gu, dailyHeadline.en, dailyHeadline.hi)}
           </h1>
           <p className="text-xs text-slate-400 leading-relaxed">
             {aiGuidance.motivationMessage}
           </p>
         </div>
       </div>
-
-      {/* AI Remedial Support Center Widget */}
-      {remedialState?.hasActiveRemedial && (
-        <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative z-10">
-            <div className="flex items-start space-x-4">
-              <div className="p-3 bg-amber-500/15 text-amber-400 rounded-xl border border-amber-500/20 shrink-0">
-                <HeartHandshake className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 text-[10px] font-bold uppercase tracking-wider border border-amber-400/30 flex items-center space-x-1">
-                    <Sparkles className="w-3.5 h-3.5 mr-1" />
-                    {tr('AI ઉપચારાત્મક સહાય સક્રિય', 'Remedial Support Active')}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    {tr('અગાઉનો સ્કોર', 'Previous Score')}: <span className="font-bold text-amber-300">{remedialState.activeSession.previousPercentage}%</span>
-                  </span>
-                </div>
-                <h3 className="text-base font-bold text-white">
-                  {tr(
-                    'ચાલો આ વિષયને સુધારીએ! તમને આ પ્રકરણમાં થોડી વધુ પ્રેક્ટિસની જરૂર પડી શકે છે.',
-                    "Let's improve this topic! You may need a little more practice with this chapter."
-                  )}
-                </h3>
-                <p className="text-xs text-slate-300 flex items-center gap-2">
-                  <span>{tr('પ્રકરણ', 'Chapter')}: <strong className="text-amber-300">{trItem(remedialState.activeSession.chapterNameGu, remedialState.activeSession.chapterName)}</strong></span>
-                  <span>•</span>
-                  <span>{tr('વિષય', 'Subject')}: <strong className="text-blue-300">{trSubject(remedialState.activeSession.subjectNameGu, remedialState.activeSession.subjectName)}</strong></span>
-                </p>
-                {remedialState.activeSession.weakTopics && remedialState.activeSession.weakTopics.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {remedialState.activeSession.weakTopics.slice(0, 3).map((wt: any, idx: number) => (
-                      <span key={idx} className="px-2 py-0.5 rounded-md bg-slate-800 text-[11px] text-slate-300 border border-slate-700">
-                        🎯 {trItem(wt.topicGu, wt.topic)}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0 w-full md:w-auto">
-              <button
-                onClick={() => setIsRemedialOpen(true)}
-                className="flex-1 md:flex-initial px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-sm transition-colors flex items-center justify-center space-x-2"
-              >
-                <BookOpen className="w-4 h-4" />
-                <span>{tr('પ્રકરણ પુનરાવર્તન અને ટેસ્ટ આપો', 'Revise Chapter & Retake')}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setIsRemedialHistoryOpen(true)}
-                className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs rounded-xl border border-slate-700 transition-colors flex items-center space-x-1.5"
-              >
-                <History className="w-4 h-4 text-purple-400" />
-                <span>{tr('ઇતિહાસ', 'History')}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!remedialState?.hasActiveRemedial && remedialState?.latestCompleted && (
-        <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30 shrink-0">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-bold text-emerald-400">
-                  {tr('ઉપચારાત્મક ટેસ્ટ સફળતાપૂર્વક પૂર્ણ!', 'Remedial Session Completed!')}
-                </span>
-                {remedialState.latestCompleted.improvementDelta > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold border border-emerald-500/30">
-                    +{remedialState.latestCompleted.improvementDelta}% {tr('સુધારો', 'Improvement')}
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                {trItem(remedialState.latestCompleted.chapterNameGu, remedialState.latestCompleted.chapterName)} • {remedialState.latestCompleted.previousScore}% ➔ {remedialState.latestCompleted.remedialScore}%
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsRemedialHistoryOpen(true)}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs rounded-xl border border-slate-700 transition-colors flex items-center space-x-1.5 shrink-0"
-          >
-            <History className="w-3.5 h-3.5 text-purple-400" />
-            <span>{tr('ઇતિહાસ', 'History')}</span>
-          </button>
-        </div>
-      )}
 
       {/* 4 Core Focus Metrics */}
       <div className="space-y-3">
@@ -690,27 +642,6 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Remedial Support & History Modals */}
-      <RemedialSupportModal
-        isOpen={isRemedialOpen}
-        onClose={() => setIsRemedialOpen(false)}
-        existingSessionId={remedialState?.activeSession?.id}
-        initialWeakChapter={remedialState?.activeSession ? {
-          id: remedialState.activeSession.chapterId,
-          name: remedialState.activeSession.chapterName,
-          nameGu: remedialState.activeSession.chapterNameGu
-        } : undefined}
-        initialWeakTopics={remedialState?.activeSession?.weakTopics}
-        onRemedialComplete={() => {
-          // refresh dashboard remedial state
-          api.get('/remedial/active').then(res => setRemedialState(res.data)).catch(() => {});
-        }}
-      />
-
-      <RemedialHistoryModal
-        isOpen={isRemedialHistoryOpen}
-        onClose={() => setIsRemedialHistoryOpen(false)}
-      />
-    </div>
+      </div>
   );
 };

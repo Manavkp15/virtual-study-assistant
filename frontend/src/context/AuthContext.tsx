@@ -6,8 +6,8 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
-  register: (email: string, pass: string, name: string, role?: string, standard?: string) => Promise<any>;
+  login: (email: string, pass: string) => Promise<User>;
+  register: (email: string, pass: string, name: string, role?: string, standard?: string, subjects?: string[] | string) => Promise<any>;
   logout: () => void;
   updateProfileState: (updated: Partial<User>) => void;
 }
@@ -33,9 +33,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const res = await api.get('/auth/me');
         setUser(res.data.user);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Session restore error:', err);
-        logout();
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) {
+          logout();
+        }
       } finally {
         setLoading(false);
       }
@@ -53,10 +56,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('vsa_save_password');
     setToken(jwtToken);
     setUser(userData);
+    return userData;
   };
 
-  const register = async (email: string, pass: string, name: string, role: string = 'STUDENT', standard: string = 'Standard 8') => {
-    const res = await api.post('/auth/register', { email, password: pass, name, role, standard });
+  const register = async (
+    email: string,
+    pass: string,
+    name: string,
+    role: string = 'STUDENT',
+    standard: string = 'Standard 8',
+    subjects?: string[] | string
+  ) => {
+    let subjectsList: string[] = [];
+    if (Array.isArray(subjects)) {
+      subjectsList = subjects.map(s => String(s).trim()).filter(Boolean);
+    } else if (typeof subjects === 'string' && subjects.trim()) {
+      subjectsList = subjects.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    const payload: any = { email, password: pass, name, role, standard };
+    if (role === 'TEACHER') {
+      payload.subjects = subjectsList;
+      payload.teachingSubjects = subjectsList.join(', ');
+      payload.teacherSubject = subjectsList[0] || null;
+      payload.subject = subjectsList[0] || null;
+    }
+
+    const res = await api.post('/auth/register', payload);
     // Registration only creates the account; explicit sign in is required as Step 2
     return res.data;
   };

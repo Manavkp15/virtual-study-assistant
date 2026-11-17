@@ -1,27 +1,24 @@
 import nodemailer, { Transporter } from 'nodemailer';
 import crypto from 'crypto';
+import dotenv from 'dotenv';
 
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
-const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
-const EMAIL_FROM = process.env.EMAIL_FROM || '"VM જ્ઞાનસેતુ" <noreply@vm-gyansetu.edu>';
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
+dotenv.config();
 
-let transporter: Transporter | null = null;
+const getTransporter = (): Transporter | null => {
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
 
-if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
-  transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_SECURE,
-    auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASS,
-    },
-  });
-}
+  if (host && user && pass) {
+    return nodemailer.createTransport({
+      host,
+      port: parseInt(process.env.SMTP_PORT || '587', 10),
+      secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
+      auth: { user, pass },
+    });
+  }
+  return null;
+};
 
 /**
  * Generate a cryptographically secure random token, its SHA-256 hash, and expiration timestamp.
@@ -47,8 +44,10 @@ export const sendVerificationEmail = async (
   toEmail: string,
   rawToken: string,
   recipientName: string = 'Student'
-): Promise<{ success: boolean; simulated?: boolean }> => {
-  const verificationUrl = `${FRONTEND_URL}/verify-email?token=${rawToken}&email=${encodeURIComponent(toEmail)}`;
+): Promise<{ success: boolean; simulated: boolean; verificationUrl: string }> => {
+  const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const verificationUrl = `${frontendUrl}/verify-email?token=${rawToken}&email=${encodeURIComponent(toEmail)}`;
+  const emailFrom = process.env.EMAIL_FROM || '"VM જ્ઞાનસેતુ" <noreply@vm-gyansetu.edu>';
 
   const subject = 'ઈમેઇલ ચકાસણી / Verify your Email - VM જ્ઞાનસેતુ';
   const html = `
@@ -81,15 +80,16 @@ export const sendVerificationEmail = async (
     </div>
   `;
 
+  const transporter = getTransporter();
   if (transporter) {
     try {
       await transporter.sendMail({
-        from: EMAIL_FROM,
+        from: emailFrom,
         to: toEmail,
         subject,
         html,
       });
-      return { success: true, simulated: false };
+      return { success: true, simulated: false, verificationUrl };
     } catch (err) {
       console.error('[EMAIL SERVICE] Failed to send email via SMTP transport:', err);
       // Fall through to console logging so user testing is never blocked
@@ -105,7 +105,7 @@ export const sendVerificationEmail = async (
   console.log('Validity: 24 Hours');
   console.log('============================================================\n');
 
-  return { success: true, simulated: true };
+  return { success: true, simulated: true, verificationUrl };
 };
 
 /**
@@ -115,8 +115,10 @@ export const sendPasswordResetEmail = async (
   toEmail: string,
   rawToken: string,
   recipientName: string = 'User'
-): Promise<{ success: boolean; simulated?: boolean }> => {
-  const resetUrl = `${FRONTEND_URL}/reset-password?token=${rawToken}&email=${encodeURIComponent(toEmail)}`;
+): Promise<{ success: boolean; simulated: boolean; resetUrl: string }> => {
+  const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(toEmail)}`;
+  const emailFrom = process.env.EMAIL_FROM || '"VM જ્ઞાનસેતુ" <noreply@vm-gyansetu.edu>';
 
   const subject = 'પાસવર્ડ રીસેટ સૂચનાઓ / Password Reset - VM જ્ઞાનસેતુ';
   const html = `
@@ -132,15 +134,16 @@ export const sendPasswordResetEmail = async (
     </div>
   `;
 
+  const transporter = getTransporter();
   if (transporter) {
     try {
       await transporter.sendMail({
-        from: EMAIL_FROM,
+        from: emailFrom,
         to: toEmail,
         subject,
         html,
       });
-      return { success: true, simulated: false };
+      return { success: true, simulated: false, resetUrl };
     } catch (err) {
       console.error('[EMAIL SERVICE] Failed to send password reset via SMTP:', err);
     }
@@ -152,5 +155,5 @@ export const sendPasswordResetEmail = async (
   console.log(`Reset URL: ${resetUrl}`);
   console.log('============================================================\n');
 
-  return { success: true, simulated: true };
+  return { success: true, simulated: true, resetUrl };
 };

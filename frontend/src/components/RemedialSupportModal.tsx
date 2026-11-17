@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import {
   HeartHandshake,
@@ -21,6 +21,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { tr, trSubject, trItem } from '../utils/tr';
 import { RemedialQuestion, RemedialResult } from '../types';
+import { StepByStepSolutionCard } from './StepByStepSolutionCard';
 
 interface RemedialSupportModalProps {
   isOpen: boolean;
@@ -572,12 +573,19 @@ export const RemedialSupportModal: React.FC<RemedialSupportModalProps> = ({
                           </div>
                         </div>
 
-                        {(da.explanationGu || da.explanation) && (
+                        {da.stepByStepSolution ? (
+                          <StepByStepSolutionCard
+                            solution={da.stepByStepSolution}
+                            questionText={da.questionText}
+                            explanationFallback={da.explanation}
+                            explanationFallbackGu={da.explanationGu}
+                          />
+                        ) : (da.explanationGu || da.explanation) ? (
                           <p className="text-[11px] text-slate-300 border-t border-slate-700/60 pt-1.5 italic">
                             <strong className="text-blue-400">{tr('સમજૂતી: ', 'Note: ')}</strong>
                             {trItem(da.explanationGu, da.explanation)}
                           </p>
-                        )}
+                        ) : null}
                       </div>
                     ))}
                   </div>

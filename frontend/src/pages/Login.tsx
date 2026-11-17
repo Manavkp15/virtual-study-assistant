@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   Sun,
   Moon,
-  AlertCircle,
   X
 } from 'lucide-react';
 import { tr } from '../utils/tr';
@@ -25,17 +24,24 @@ import api from '../services/api';
 export const Login: React.FC = () => {
   const { t, i18n } = useTranslation(['auth', 'common']);
   const { theme, toggleTheme } = useTheme();
+  const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navState = location.state as {
     registeredEmail?: string;
     registeredRole?: string;
     justRegistered?: boolean;
-    verificationNotice?: boolean;
   } | null;
 
+  const isTeacherTarget = (): boolean => {
+    const roleParam = searchParams.get('role')?.toUpperCase();
+    if (roleParam === 'TEACHER' || roleParam === 'ADMIN') return true;
+    if (navState?.registeredRole === 'TEACHER' || navState?.registeredRole === 'ADMIN') return true;
+    if (location.pathname === '/teacher-login') return true;
+    return false;
+  };
+
   const [activeRoleTab, setActiveRoleTab] = useState<'STUDENT' | 'TEACHER'>(() => {
-    if (navState?.registeredRole === 'ADMIN') return 'TEACHER';
-    return 'STUDENT';
+    return isTeacherTarget() ? 'TEACHER' : 'STUDENT';
   });
   const [email, setEmail] = useState(() => {
     if (navState?.registeredEmail) return navState.registeredEmail;
@@ -44,9 +50,6 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [isUnverified, setIsUnverified] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState('');
 
   // Forgot password modal state
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
@@ -56,7 +59,7 @@ export const Login: React.FC = () => {
 
   const [successMessage, setSuccessMessage] = useState(() => {
     if (navState?.justRegistered) {
-      return t('accountCreatedCheckEmail');
+      return t('registrationSuccess');
     }
     return '';
   });
@@ -68,8 +71,7 @@ export const Login: React.FC = () => {
   const handleRoleTabChange = (role: 'STUDENT' | 'TEACHER') => {
     setActiveRoleTab(role);
     setError('');
-    setIsUnverified(false);
-    setResendSuccess('');
+    setSearchParams({ role: role.toLowerCase() });
   };
 
   React.useEffect(() => {
@@ -77,14 +79,16 @@ export const Login: React.FC = () => {
     localStorage.removeItem('vsa_saved_email');
     localStorage.removeItem('vsa_saved_password');
     localStorage.removeItem('vsa_save_password');
-  }, []);
+
+    if (isTeacherTarget()) {
+      setActiveRoleTab('TEACHER');
+    }
+  }, [searchParams, navState, location.pathname]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccessMessage('');
-    setResendSuccess('');
-    setIsUnverified(false);
 
     if (!email.trim()) {
       setError(t('validation.emailRequired'));
@@ -106,20 +110,21 @@ export const Login: React.FC = () => {
 
     try {
       const normalized = normalizeEmail(email);
-      await login(normalized, password);
+      const loggedInUser = await login(normalized, password);
       // Clean any residual credentials in storage
       localStorage.removeItem('vsa_saved_email');
       localStorage.removeItem('vsa_saved_password');
       localStorage.removeItem('vsa_save_password');
-      navigate(activeRoleTab === 'TEACHER' ? '/teacher-dashboard' : '/dashboard');
+
+      const isTeacherRole = loggedInUser?.role
+        ? (loggedInUser.role === 'TEACHER' || loggedInUser.role === 'ADMIN')
+        : activeRoleTab === 'TEACHER';
+      navigate(isTeacherRole ? '/teacher-dashboard' : '/dashboard');
     } catch (err: any) {
       const errData = err.response?.data;
       const status = err.response?.status;
 
-      if (status === 403 || errData?.unverified) {
-        setIsUnverified(true);
-        setError(t('pleaseVerifyEmail'));
-      } else if (status === 401) {
+      if (status === 401 || status === 403) {
         // Strict requirement: NEVER show "Email already exists" on login!
         setError(t('invalidCredentials'));
       } else {
@@ -132,25 +137,6 @@ export const Login: React.FC = () => {
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleResendVerification = async () => {
-    const targetEmail = normalizeEmail(email);
-    if (!targetEmail || !isValidEmail(targetEmail)) {
-      setError(t('validation.emailInvalid'));
-      return;
-    }
-    setResendLoading(true);
-    setResendSuccess('');
-    setError('');
-    try {
-      await api.post('/auth/resend-verification', { email: targetEmail });
-      setResendSuccess(t('verificationSent'));
-    } catch (err: any) {
-      setError(err.response?.data?.error || t('common:error'));
-    } finally {
-      setResendLoading(false);
     }
   };
 
@@ -268,35 +254,10 @@ export const Login: React.FC = () => {
           </div>
         )}
 
-        {resendSuccess && (
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-start space-x-2.5">
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>{resendSuccess}</span>
+        {error && (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
+            {error}
           </div>
-        )}
-
-        {isUnverified ? (
-          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-3">
-            <div className="flex items-start space-x-2">
-              <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-              <span className="font-semibold leading-relaxed">{t('pleaseVerifyEmail')}</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleResendVerification}
-              disabled={resendLoading}
-              className="w-full py-2.5 px-3 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/50 text-amber-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-sm"
-            >
-              <Mail className="w-4 h-4" />
-              <span>{resendLoading ? t('common:saving') : t('resendVerification')}</span>
-            </button>
-          </div>
-        ) : (
-          error && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
-              {error}
-            </div>
-          )
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
@@ -393,7 +354,11 @@ export const Login: React.FC = () => {
 
         <p className="text-center text-xs text-slate-400 pt-2">
           {t('noAccount')}{' '}
-          <Link to="/register" className="text-blue-400 hover:underline font-semibold">
+          <Link
+            to={activeRoleTab === 'TEACHER' ? '/register?role=teacher' : '/register'}
+            state={{ role: activeRoleTab }}
+            className="text-blue-400 hover:underline font-semibold"
+          >
             {t('registerHere')}
           </Link>
         </p>

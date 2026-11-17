@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { prisma } from './database/prisma';
+import { ensureFileOnDisk } from './services/fileStorage';
 import authRoutes from './routes/auth.routes';
 import studentRoutes from './routes/student.routes';
 import testRoutes from './routes/test.routes';
@@ -18,6 +19,7 @@ import videoLectureRoutes from './routes/videoLecture.routes';
 import ragRoutes from './routes/rag.routes';
 import remedialRoutes from './routes/remedial.routes';
 import speechRoutes from './routes/speech.routes';
+import aiDictionaryRoutes from './routes/aiDictionary.routes';
 
 dotenv.config();
 
@@ -53,6 +55,7 @@ app.use('/api/video-lectures', videoLectureRoutes);
 app.use('/api/rag', ragRoutes);
 app.use('/api/remedial', remedialRoutes);
 app.use('/api/speech', speechRoutes);
+app.use('/api/ai-dictionary', aiDictionaryRoutes);
 
 // Static uploads serving for videos (with range support handled natively by express.static)
 const candidateVideoDirs = [
@@ -77,7 +80,17 @@ const avatarUploadDir = candidateAvatarDirs.find(d => fs.existsSync(d)) || path.
 if (!fs.existsSync(avatarUploadDir)) {
   fs.mkdirSync(avatarUploadDir, { recursive: true });
 }
-app.use('/uploads/avatars', express.static(avatarUploadDir));
+app.use('/uploads/avatars', async (req, res, next) => {
+  const filename = path.basename(req.path);
+  if (filename) {
+    try {
+      await ensureFileOnDisk(filename, avatarUploadDir);
+    } catch (e) {
+      // ignore
+    }
+  }
+  next();
+}, express.static(avatarUploadDir));
 // Health check endpoint with database connectivity check
 app.get('/api/health', async (req, res) => {
   let dbStatus = 'CONNECTED';
@@ -121,7 +134,7 @@ if (staticDistPath) {
   console.log(`📦 Serving frontend static assets from: ${staticDistPath}`);
   app.use(express.static(staticDistPath));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
       return next();
     }
     res.sendFile(path.join(staticDistPath, 'index.html'));

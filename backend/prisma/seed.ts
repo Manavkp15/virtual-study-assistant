@@ -14,24 +14,59 @@ const prisma = new PrismaClient({
 async function main() {
   console.log('🌱 Starting database seeding with bilingual support...');
 
-  // Clean existing data
-  await prisma.achievement.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.studyTask.deleteMany();
-  await prisma.studyPlan.deleteMany();
-  await prisma.mistakeBookEntry.deleteMany();
-  await prisma.topicPerformance.deleteMany();
-  await prisma.studentAnswer.deleteMany();
-  await prisma.testAttempt.deleteMany();
-  await prisma.testQuestion.deleteMany();
-  await prisma.test.deleteMany();
-  await prisma.questionOption.deleteMany();
-  await prisma.question.deleteMany();
-  await prisma.topic.deleteMany();
-  await prisma.chapter.deleteMany();
-  await prisma.subject.deleteMany();
-  await prisma.studentProfile.deleteMany();
-  await prisma.user.deleteMany();
+  // Clean existing data in safe dependency order
+  const safeDelete = async (modelDelegate: any, name: string) => {
+    try {
+      if (modelDelegate && typeof modelDelegate.deleteMany === 'function') {
+        await modelDelegate.deleteMany();
+      }
+    } catch (e: any) {
+      // Ignored if table is already empty or does not exist
+    }
+  };
+
+  await safeDelete((prisma as any).dictionarySearch, 'dictionarySearch');
+  await safeDelete((prisma as any).savedWord, 'savedWord');
+  await safeDelete((prisma as any).dictionaryCache, 'dictionaryCache');
+  await safeDelete((prisma as any).parentStudentMapping, 'parentStudentMapping');
+  await safeDelete((prisma as any).parentProfile, 'parentProfile');
+  await safeDelete((prisma as any).remedialSessionAnswer, 'remedialSessionAnswer');
+  await safeDelete((prisma as any).remedialSession, 'remedialSession');
+  await safeDelete((prisma as any).aiHomeworkCheck, 'aiHomeworkCheck');
+  await safeDelete((prisma as any).homeworkAuditLog, 'homeworkAuditLog');
+  await safeDelete((prisma as any).homeworkSubmissionHistory, 'homeworkSubmissionHistory');
+  await safeDelete((prisma as any).questionEvaluation, 'questionEvaluation');
+  await safeDelete((prisma as any).submissionPage, 'submissionPage');
+  await safeDelete((prisma as any).homeworkSubmission, 'homeworkSubmission');
+  await safeDelete((prisma as any).homeworkQuestion, 'homeworkQuestion');
+  await safeDelete((prisma as any).homework, 'homework');
+  await safeDelete((prisma as any).studyMaterialAccess, 'studyMaterialAccess');
+  await safeDelete((prisma as any).studyMaterial, 'studyMaterial');
+  await safeDelete((prisma as any).videoLectureAccess, 'videoLectureAccess');
+  await safeDelete((prisma as any).videoLecture, 'videoLecture');
+  await safeDelete((prisma as any).textbookChunk, 'textbookChunk');
+  await safeDelete((prisma as any).textbookDocument, 'textbookDocument');
+  await safeDelete((prisma as any).teacherSubjectMapping, 'teacherSubjectMapping');
+  await safeDelete((prisma as any).teacherSubject, 'teacherSubject');
+  await safeDelete((prisma as any).storedFile, 'storedFile');
+
+  await safeDelete(prisma.achievement, 'achievement');
+  await safeDelete(prisma.notification, 'notification');
+  await safeDelete(prisma.studyTask, 'studyTask');
+  await safeDelete(prisma.studyPlan, 'studyPlan');
+  await safeDelete(prisma.mistakeBookEntry, 'mistakeBookEntry');
+  await safeDelete(prisma.topicPerformance, 'topicPerformance');
+  await safeDelete(prisma.studentAnswer, 'studentAnswer');
+  await safeDelete(prisma.testAttempt, 'testAttempt');
+  await safeDelete(prisma.testQuestion, 'testQuestion');
+  await safeDelete(prisma.test, 'test');
+  await safeDelete(prisma.questionOption, 'questionOption');
+  await safeDelete(prisma.question, 'question');
+  await safeDelete(prisma.topic, 'topic');
+  await safeDelete(prisma.chapter, 'chapter');
+  await safeDelete(prisma.subject, 'subject');
+  await safeDelete(prisma.studentProfile, 'studentProfile');
+  await safeDelete(prisma.user, 'user');
 
   // Create Users (only if explicitly enabled via SEED_DEMO_USERS=true)
   const shouldSeedUsers = process.env.SEED_DEMO_USERS === 'true';

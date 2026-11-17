@@ -6,6 +6,7 @@ import { tr, trSubject, trItem } from '../utils/tr';
 import { Trophy, CheckCircle2, XCircle, AlertCircle, ArrowRight, Brain, HeartHandshake, Sparkles, BookOpen, History, TrendingUp } from 'lucide-react';
 import { RemedialSupportModal } from '../components/RemedialSupportModal';
 import { RemedialHistoryModal } from '../components/RemedialHistoryModal';
+import { StepByStepSolutionCard } from '../components/StepByStepSolutionCard';
 
 export const TestResultPage: React.FC = () => {
   const location = useLocation();
@@ -222,12 +223,19 @@ export const TestResultPage: React.FC = () => {
                   </div>
                 </div>
 
-                {(da.explanationGu || da.explanation) && (
+                {da.stepByStepSolution ? (
+                  <StepByStepSolutionCard
+                    solution={da.stepByStepSolution}
+                    questionText={da.questionText}
+                    explanationFallback={da.explanation}
+                    explanationFallbackGu={da.explanationGu}
+                  />
+                ) : (da.explanationGu || da.explanation) ? (
                   <p className="text-xs text-slate-300 mt-3 pt-3 border-t border-slate-800/80 leading-relaxed">
                     <strong className="text-blue-400">{t('explanation')}: </strong>
                     {trItem(da.explanationGu, da.explanation)}
                   </p>
-                )}
+                ) : null}
               </div>
             ))}
           </div>

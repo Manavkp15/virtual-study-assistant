@@ -131,7 +131,7 @@ export const AnalyticsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center space-x-3">
             <BarChart3 className="w-7 h-7 text-blue-400" />
-            <span>{t('performanceAnalytics')}</span>
+            <span>{t('performanceAnalytics', 'Hollistic Progressive Card(HPC)')}</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">
             {tr('આંકડાકીય ટેલિમેટ્રી, ચોકસાઈ ટ્રેન્ડ્સ અને ગુણ પૂર્વાનુમાન', 'Statistical telemetry, accuracy trends, and linear regression score forecasts', 'सांख्यिकीय टेलीमेट्री, सटीकता रुझान और स्कोर पूर्वानुमान')}

@@ -1,10 +1,18 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { prisma } from '../database/prisma';
+import {
+  getCanonicalSubjectName,
+  ensureSubjectInDatabase,
+  isValidTeacherSubject,
+  TEACHER_SUBJECTS,
+  getTeacherAssignedSubjects
+} from '../utils/subjectConstants';
 
 export const getAdminOverview = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const studentsCount = await prisma.user.count({ where: { role: 'STUDENT' } });
+    const teachersCount = await prisma.user.count({ where: { role: { in: ['TEACHER', 'ADMIN'] } } });
     const subjectsCount = await prisma.subject.count();
     const questionsCount = await prisma.question.count();
     const testsCount = await prisma.test.count();
@@ -20,6 +28,26 @@ export const getAdminOverview = async (req: AuthenticatedRequest, res: Response)
       }
     });
 
+    const teachers = await prisma.user.findMany({
+      where: { role: { in: ['TEACHER', 'ADMIN'] } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        teacherSubject: true,
+        teachingSubjects: true,
+        createdAt: true,
+        teacherSubjects: {
+          include: { subject: true }
+        },
+        subjectMappings: {
+          include: { subject: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
     const recentAttempts = await prisma.testAttempt.findMany({
       include: {
         user: { select: { name: true, email: true } },
@@ -32,11 +60,36 @@ export const getAdminOverview = async (req: AuthenticatedRequest, res: Response)
     res.json({
       counts: {
         studentsCount,
+        teachersCount,
         subjectsCount,
         questionsCount,
         testsCount,
         attemptsCount
       },
+      teachers: teachers.map(t => {
+        const tsObjs = (t.teacherSubjects || []).map(ts => ts.subject);
+        const smObjs = (t.subjectMappings || []).map(sm => sm.subject);
+        const combined = tsObjs.length > 0 ? tsObjs : smObjs;
+        let subjectsList = Array.from(new Set(combined.map(s => s.name)));
+        if (subjectsList.length === 0 && (t.teacherSubject || t.teachingSubjects)) {
+          const raw = t.teachingSubjects || t.teacherSubject || '';
+          subjectsList = Array.from(new Set(raw.split(',').map(s => s.trim()).filter(Boolean)));
+        }
+
+        return {
+          id: t.id,
+          name: t.name,
+          email: t.email,
+          role: t.role,
+          subjects: subjectsList,
+          subject: subjectsList.join(', ') || 'Not Assigned',
+          teacherSubject: subjectsList[0] || t.teacherSubject || 'Not Assigned',
+          teachingSubjects: subjectsList.join(', ') || t.teachingSubjects,
+          teacherSubjects: combined,
+          status: 'Active',
+          createdAt: t.createdAt
+        };
+      }),
       students: students.map(s => ({
         id: s.id,
         name: s.name,
@@ -460,6 +513,173 @@ export const clearStudentProfiles = async (req: AuthenticatedRequest, res: Respo
   } catch (error) {
     console.error('Clear students error:', error);
     res.status(500).json({ error: 'Failed to clear student profiles' });
+  }
+};
+
+export const getTeachers = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const teachers = await prisma.user.findMany({
+      where: { role: { in: ['TEACHER', 'ADMIN'] } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        teacherSubject: true,
+        teachingSubjects: true,
+        createdAt: true,
+        teacherSubjects: {
+          include: { subject: true }
+        },
+        subjectMappings: {
+          include: { subject: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      teachers: teachers.map(t => {
+        const tsObjs = (t.teacherSubjects || []).map(ts => ts.subject);
+        const smObjs = (t.subjectMappings || []).map(sm => sm.subject);
+        const combined = tsObjs.length > 0 ? tsObjs : smObjs;
+        let subjectsList = Array.from(new Set(combined.map(s => s.name)));
+        if (subjectsList.length === 0 && (t.teacherSubject || t.teachingSubjects)) {
+          const raw = t.teachingSubjects || t.teacherSubject || '';
+          subjectsList = Array.from(new Set(raw.split(',').map(s => s.trim()).filter(Boolean)));
+        }
+
+        return {
+          id: t.id,
+          name: t.name,
+          email: t.email,
+          role: t.role,
+          subjects: subjectsList,
+          subject: subjectsList.join(', ') || 'Not Assigned',
+          teacherSubject: subjectsList[0] || t.teacherSubject || 'Not Assigned',
+          teachingSubjects: subjectsList.join(', ') || t.teachingSubjects,
+          teacherSubjects: combined,
+          status: 'Active',
+          createdAt: t.createdAt
+        };
+      })
+    });
+  } catch (error) {
+    console.error('getTeachers error:', error);
+    res.status(500).json({ error: 'Failed to fetch teachers' });
+  }
+};
+
+export const updateTeacherSubject = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { subject, subjects, subjectIds } = req.body;
+
+    const rawList = subjects !== undefined ? subjects : subjectIds !== undefined ? subjectIds : subject;
+
+    let requestedList: string[] = [];
+    if (Array.isArray(rawList)) {
+      requestedList = rawList.map(s => String(s).trim()).filter(Boolean);
+    } else if (typeof rawList === 'string' && rawList.trim()) {
+      requestedList = rawList.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    if (requestedList.length === 0) {
+      return res.status(400).json({
+        error: 'Please select at least one subject.',
+        messageGu: 'કૃપા કરીને ઓછામાં ઓછો એક વિષય પસંદ કરો.'
+      });
+    }
+
+    const teacher = await prisma.user.findUnique({
+      where: { id }
+    });
+
+    if (!teacher || (teacher.role !== 'TEACHER' && teacher.role !== 'ADMIN')) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    // Resolve canonical subjects
+    const canonicalNames: string[] = [];
+    const validSubjectIds: string[] = [];
+
+    for (const item of requestedList) {
+      const matchedById = await prisma.subject.findUnique({ where: { id: item } });
+      if (matchedById) {
+        if (!isValidTeacherSubject(matchedById.name)) {
+          return res.status(400).json({
+            error: `Invalid subject: "${matchedById.name}". Allowed subjects are: ${TEACHER_SUBJECTS.map(s => s.name).join(', ')}`,
+            messageGu: 'અમાન્ય વિષય પસંદ કર્યો છે.'
+          });
+        }
+        canonicalNames.push(getCanonicalSubjectName(matchedById.name));
+        validSubjectIds.push(matchedById.id);
+      } else {
+        if (!isValidTeacherSubject(item)) {
+          return res.status(400).json({
+            error: `Invalid subject: "${item}". Allowed subjects are: ${TEACHER_SUBJECTS.map(s => s.name).join(', ')}`,
+            messageGu: 'અમાન્ય વિષય પસંદ કર્યો છે.'
+          });
+        }
+        const cName = getCanonicalSubjectName(item);
+        canonicalNames.push(cName);
+        const sub = await ensureSubjectInDatabase(prisma, cName);
+        if (sub) validSubjectIds.push(sub.id);
+      }
+    }
+
+    const uniqueNames = Array.from(new Set(canonicalNames));
+    const uniqueIds = Array.from(new Set(validSubjectIds));
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: {
+        teacherSubject: uniqueNames[0] || null,
+        teachingSubjects: uniqueNames.join(', ')
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        teacherSubject: true,
+        teachingSubjects: true
+      }
+    });
+
+    // Sync TeacherSubject table
+    await prisma.teacherSubject.deleteMany({ where: { teacherId: id } });
+    for (const sid of uniqueIds) {
+      await prisma.teacherSubject.create({
+        data: { teacherId: id, subjectId: sid }
+      });
+    }
+
+    // Sync TeacherSubjectMapping table
+    await prisma.teacherSubjectMapping.deleteMany({ where: { teacherId: id } });
+    for (const sid of uniqueIds) {
+      await prisma.teacherSubjectMapping.create({
+        data: { teacherId: id, subjectId: sid }
+      });
+    }
+
+    res.json({
+      message: 'Teacher subjects updated successfully',
+      subjects: uniqueNames,
+      teacher: {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        subject: uniqueNames.join(', '),
+        subjects: uniqueNames,
+        teacherSubject: uniqueNames[0],
+        teachingSubjects: uniqueNames.join(', '),
+        status: 'Active'
+      }
+    });
+  } catch (error) {
+    console.error('updateTeacherSubject error:', error);
+    res.status(500).json({ error: 'Failed to update teacher subject' });
   }
 };
 

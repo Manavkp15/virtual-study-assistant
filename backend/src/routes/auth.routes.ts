@@ -4,8 +4,12 @@ import {
   login,
   verifyEmail,
   resendVerification,
+  quickVerify,
   getCurrentUser,
   updateProfile,
+  getTeacherSubjectMappings,
+  updateTeacherSubjectMappings,
+  getTeacherAssignedSubjectsList,
   forgotPassword,
   uploadAvatar,
   removeAvatar
@@ -20,9 +24,15 @@ router.post('/login', login);
 router.get('/verify-email', verifyEmail);
 router.post('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerification);
+router.post('/quick-verify', quickVerify);
 router.post('/forgot-password', forgotPassword);
 router.get('/me', authenticateToken, getCurrentUser);
 router.put('/profile', authenticateToken, updateProfile);
+
+// Teacher subject mapping routes
+router.get('/teacher/subjects', authenticateToken, getTeacherSubjectMappings);
+router.get('/teacher/assigned-subjects', authenticateToken, getTeacherAssignedSubjectsList);
+router.put('/teacher/subject-mappings', authenticateToken, updateTeacherSubjectMappings);
 
 // Avatar management routes
 router.post('/avatar', authenticateToken, (req, res, next) => {

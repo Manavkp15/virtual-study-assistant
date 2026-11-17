@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { prisma } from '../database/prisma';
+import { enrichWithStepByStepSolution } from '../ai/stepByStepSolver';
 
 /**
  * Creates or retrieves a RemedialSession when a test attempt scores < 50%
@@ -453,7 +454,14 @@ export const submitRemedialTest = async (req: AuthenticatedRequest, res: Respons
         correctOptionGu: correctOpt?.optionTextGu || (correctOpt ? correctOpt.optionText : ''),
         isCorrect,
         explanation: q.explanation,
-        explanationGu: q.explanationGu || q.explanation
+        explanationGu: q.explanationGu || q.explanation,
+        stepByStepSolution: enrichWithStepByStepSolution(
+          q.id,
+          q.questionText,
+          session.subject?.name,
+          q.topic?.name,
+          q.explanation || undefined
+        )
       });
     }
 
@@ -627,19 +635,24 @@ export const getActiveRemedial = async (req: AuthenticatedRequest, res: Response
         if (active.weakTopicsSummary) weakTopics = JSON.parse(active.weakTopicsSummary);
       } catch {}
 
+      const sessionData = {
+        id: active.id,
+        chapterId: active.chapterId,
+        chapterName: active.chapter.name,
+        chapterNameGu: active.chapter.nameGu,
+        subjectName: active.subject.name,
+        subjectNameGu: active.subject.nameGu,
+        initialPercentage: active.initialPercentage,
+        previousPercentage: active.initialPercentage,
+        previousScore: active.initialPercentage,
+        status: active.status,
+        weakTopics
+      };
+
       return res.json({
         hasActiveRemedial: true,
-        session: {
-          id: active.id,
-          chapterId: active.chapterId,
-          chapterName: active.chapter.name,
-          chapterNameGu: active.chapter.nameGu,
-          subjectName: active.subject.name,
-          subjectNameGu: active.subject.nameGu,
-          initialPercentage: active.initialPercentage,
-          status: active.status,
-          weakTopics
-        }
+        session: sessionData,
+        activeSession: sessionData
       });
     }
 
@@ -665,8 +678,12 @@ export const getActiveRemedial = async (req: AuthenticatedRequest, res: Response
         subjectName: latestCompleted.subject.name,
         subjectNameGu: latestCompleted.subject.nameGu,
         initialPercentage: latestCompleted.initialPercentage,
+        previousScore: latestCompleted.initialPercentage,
+        previousPercentage: latestCompleted.initialPercentage,
         remedialPercentage: latestCompleted.remedialPercentage,
+        remedialScore: latestCompleted.remedialPercentage,
         improvementPercentage: latestCompleted.improvementPercentage,
+        improvementDelta: latestCompleted.improvementPercentage || 0,
         completedAt: latestCompleted.completedAt
       } : null
     });

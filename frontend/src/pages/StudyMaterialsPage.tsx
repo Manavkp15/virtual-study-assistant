@@ -620,7 +620,7 @@ export const StudyMaterialsPage: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <FileText className="w-5 h-5 text-rose-400" />
                     <div>
-                      <h4 className="text-xs font-bold text-white">{t('form.pdfSection')}</h4>
+                      <h4 className="text-xs font-bold text-white">{tr('અભ્યાસ સાહિત્ય PDF', 'Study Material PDF', 'अध्ययन सामग्री पीडीएफ')}</h4>
                       <p className="text-[11px] text-slate-400">{detailsMaterial.pdfFileName || 'Document Available'}</p>
                     </div>
                   </div>
@@ -654,7 +654,7 @@ export const StudyMaterialsPage: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <Video className="w-5 h-5 text-red-400" />
                   <div>
-                    <h4 className="text-xs font-bold text-white">{t('form.videoSection')}</h4>
+                    <h4 className="text-xs font-bold text-white">{tr('શૈક્ષણિક વિડિઓ', 'Related Educational Video', 'संबंधित शैक्षणिक वीडियो')}</h4>
                     <p className="text-[11px] text-slate-400">{detailsMaterial.videoTitle || 'Educational Video Lesson'}</p>
                   </div>
                 </div>

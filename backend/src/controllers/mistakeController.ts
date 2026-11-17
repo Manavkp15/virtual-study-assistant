@@ -1,16 +1,64 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { prisma } from '../database/prisma';
+import { enrichWithStepByStepSolution } from '../ai/stepByStepSolver';
+import { getTeacherAssignedSubjects } from '../utils/subjectConstants';
 
 export const getMistakes = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user?.id;
+    const userRole = req.user?.role;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const { subjectId, topicId, isResolved } = req.query;
 
-    const where: any = { userId };
+    const where: any = {};
     if (isResolved !== undefined) where.isResolved = isResolved === 'true';
+
+    if (userRole === 'STUDENT') {
+      where.userId = userId;
+    } else if (userRole === 'TEACHER') {
+      const assigned = await getTeacherAssignedSubjects(prisma, userId);
+      const assignedSubjectIds = assigned.map(s => s.id);
+
+      if (assignedSubjectIds.length === 0) {
+        return res.json({ mistakes: [] });
+      }
+
+      if (subjectId && typeof subjectId === 'string' && subjectId !== 'ALL') {
+        if (!assignedSubjectIds.includes(subjectId)) {
+          return res.status(403).json({
+            error: 'You are not authorized to view doubts for this subject.',
+            messageGu: 'તમને આ વિષય માટે શંકાઓ જોવાની મંજૂરી નથી.'
+          });
+        }
+        where.question = {
+          topic: {
+            chapter: {
+              subjectId
+            }
+          }
+        };
+      } else {
+        where.question = {
+          topic: {
+            chapter: {
+              subjectId: { in: assignedSubjectIds }
+            }
+          }
+        };
+      }
+    } else if (userRole === 'ADMIN') {
+      if (subjectId && typeof subjectId === 'string' && subjectId !== 'ALL') {
+        where.question = {
+          topic: {
+            chapter: {
+              subjectId
+            }
+          }
+        };
+      }
+    }
 
     const mistakes = await prisma.mistakeBookEntry.findMany({
       where,
@@ -75,7 +123,14 @@ export const getMistakes = async (req: AuthenticatedRequest, res: Response) => {
         isResolved: m.isResolved,
         recommendation,
         recommendationGu,
-        lastAttemptedAt: m.lastAttemptedAt
+        lastAttemptedAt: m.lastAttemptedAt,
+        stepByStepSolution: enrichWithStepByStepSolution(
+          q.id,
+          q.questionText,
+          q.topic.chapter.subject.name,
+          q.topic.name,
+          q.explanation || undefined
+        )
       };
     });
 

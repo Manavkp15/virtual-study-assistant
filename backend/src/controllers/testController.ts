@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { prisma } from '../database/prisma';
 import { updateStudentTopicPerformance } from '../algorithms/weakTopicDetector';
+import { enrichWithStepByStepSolution } from '../ai/stepByStepSolver';
 
 export const getTests = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -360,7 +361,14 @@ export const submitTest = async (req: AuthenticatedRequest, res: Response) => {
             correctOptionGu: correctOpt?.optionTextGu || (correctOpt ? correctOpt.optionText : ''),
             isCorrect: sa.isCorrect,
             explanation: sa.question.explanation,
-            explanationGu: sa.question.explanationGu || sa.question.explanation
+            explanationGu: sa.question.explanationGu || sa.question.explanation,
+            stepByStepSolution: enrichWithStepByStepSolution(
+              sa.questionId,
+              sa.question.questionText,
+              test.subject.name,
+              sa.question.topic.name,
+              sa.question.explanation || undefined
+            )
           };
         })
       }

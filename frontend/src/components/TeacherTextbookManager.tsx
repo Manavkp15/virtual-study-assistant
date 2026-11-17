@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { tr } from '../utils/tr';
+import { TEACHER_SUBJECTS, getLocalizedSubjectName } from '../utils/subjectConstants';
 
 interface Textbook {
   id: string;
@@ -352,11 +353,11 @@ export const TeacherTextbookManager: React.FC = () => {
                     onChange={(e) => setSubject(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white"
                   >
-                    <option value="Science">Science (વિજ્ઞાન)</option>
-                    <option value="Mathematics">Mathematics (ગણિત)</option>
-                    <option value="Social Science">Social Science (સા.વિ.)</option>
-                    <option value="English">English</option>
-                    <option value="Gujarati">Gujarati</option>
+                    {TEACHER_SUBJECTS.map((s) => (
+                      <option key={s.name} value={s.name}>
+                        {s.name} ({s.nameGu})
+                      </option>
+                    ))}
                   </select>
                 </div>
 

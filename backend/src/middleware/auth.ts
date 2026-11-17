@@ -29,6 +29,22 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
   });
 };
 
+export const optionalAuthToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  const token = (authHeader && authHeader.split(' ')[1]) || (req.query.token as string);
+
+  if (!token) {
+    return next();
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (!err && user) {
+      req.user = user as AuthenticatedRequest['user'];
+    }
+    next();
+  });
+};
+
 export const requireAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   if (!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'TEACHER')) {
     return res.status(403).json({ error: 'Admin / Teacher access required' });

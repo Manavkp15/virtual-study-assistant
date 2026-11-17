@@ -7,6 +7,8 @@ export interface TTSState {
   voices: SpeechSynthesisVoice[];
   selectedVoice: SpeechSynthesisVoice | null;
   rate: number;
+  volume: number;
+  currentSpokenText: string;
   activeMessageId: string | number | null;
   playbackState: TTSPlaybackState;
   activeEngine?: 'indic-neural' | 'browser' | null;
@@ -15,6 +17,7 @@ export interface TTSState {
   resume: () => void;
   stop: () => void;
   setRate: (rate: number) => void;
+  setVolume: (volume: number) => void;
   setSelectedVoice: (voice: SpeechSynthesisVoice | null) => void;
 }
 
@@ -64,6 +67,8 @@ export function useTextToSpeech(): TTSState {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [rate, setRateState] = useState<number>(1.0);
+  const [volume, setVolumeState] = useState<number>(1.0);
+  const [currentSpokenText, setCurrentSpokenText] = useState<string>('');
   const [activeMessageId, setActiveMessageId] = useState<string | number | null>(null);
   const [playbackState, setPlaybackState] = useState<TTSPlaybackState>('idle');
   const [activeEngine, setActiveEngine] = useState<'indic-neural' | 'browser' | null>(null);
@@ -76,9 +81,11 @@ export function useTextToSpeech(): TTSState {
   const isPausedRef = useRef<boolean>(false);
   const selectedVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const rateRef = useRef<number>(1.0);
+  const volumeRef = useRef<number>(1.0);
 
   selectedVoiceRef.current = selectedVoice;
   rateRef.current = rate;
+  volumeRef.current = volume;
 
   // Populate available browser voices
   useEffect(() => {
@@ -208,6 +215,7 @@ export function useTextToSpeech(): TTSState {
     }
     utteranceRef.current = null;
     setActiveMessageId(null);
+    setCurrentSpokenText('');
     setPlaybackState('idle');
     setActiveEngine(null);
   }, []);
@@ -284,9 +292,11 @@ export function useTextToSpeech(): TTSState {
 
       utterance.rate = rateRef.current;
       utterance.pitch = 1.0;
+      utterance.volume = volumeRef.current;
 
       utterance.onstart = () => {
         setActiveMessageId(id);
+        setCurrentSpokenText(spokenText);
         setPlaybackState('playing');
       };
 
@@ -301,6 +311,7 @@ export function useTextToSpeech(): TTSState {
       utterance.onend = () => {
         utteranceRef.current = null;
         setActiveMessageId(null);
+        setCurrentSpokenText('');
         setPlaybackState('idle');
         setActiveEngine(null);
         if (onEnd) {
@@ -352,6 +363,7 @@ export function useTextToSpeech(): TTSState {
         abortControllerRef.current = controller;
 
         setActiveMessageId(id);
+        setCurrentSpokenText(spokenText);
         setPlaybackState('playing');
         setActiveEngine('indic-neural');
         isPausedRef.current = false;
@@ -378,6 +390,7 @@ export function useTextToSpeech(): TTSState {
             const audio = new Audio(url);
             audioRef.current = audio;
             audio.playbackRate = rateRef.current;
+            audio.volume = volumeRef.current;
 
             audio.onended = () => {
               if (blobUrlRef.current) {
@@ -386,6 +399,7 @@ export function useTextToSpeech(): TTSState {
               }
               audioRef.current = null;
               setActiveMessageId(null);
+              setCurrentSpokenText('');
               setPlaybackState('idle');
               setActiveEngine(null);
               if (onEnd) onEnd();
@@ -447,11 +461,22 @@ export function useTextToSpeech(): TTSState {
     [playbackState]
   );
 
+  const setVolume = useCallback((newVolume: number) => {
+    const clamped = Math.max(0, Math.min(1, newVolume));
+    setVolumeState(clamped);
+    volumeRef.current = clamped;
+    if (audioRef.current) {
+      audioRef.current.volume = clamped;
+    }
+  }, []);
+
   return {
     isSupported,
     voices,
     selectedVoice,
     rate,
+    volume,
+    currentSpokenText,
     activeMessageId,
     playbackState,
     activeEngine,
@@ -460,6 +485,7 @@ export function useTextToSpeech(): TTSState {
     resume,
     stop,
     setRate,
+    setVolume,
     setSelectedVoice
   };
 }

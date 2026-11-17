@@ -456,6 +456,7 @@ export const enToHiMap: Record<string, string> = {
   'Teacher Dashboard': 'शिक्षक डैशबोर्ड',
   'Admin Dashboard': 'एडमिन डैशबोर्ड',
   'Doubt Center': 'संदेह निवारण केंद्र',
+  'Mistake Book': 'मिस्टेक बुक',
   'Settings': 'सेटिंग्स',
   'Teachers': 'शिक्षक',
   'Chapters': 'अध्याय',

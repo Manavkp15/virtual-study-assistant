@@ -1,6 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { prisma } from '../database/prisma';
 
 // Secure upload directory outside of public web root
 export const HOMEWORK_UPLOAD_DIR = path.resolve(__dirname, '../../uploads/homework');
@@ -28,27 +29,39 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter enforcing PDF only - without any file-size restriction
+// File filter allowing PDF, JPG, PNG, and WEBP for handwritten homework & documents
+const allowedMimes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const allowedExts = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
+
 const fileFilter = (
   _req: any,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  const isPdfMime = file.mimetype === 'application/pdf';
-  const hasPdfExt = path.extname(file.originalname).toLowerCase() === '.pdf';
+  const ext = path.extname(file.originalname).toLowerCase();
+  const isAllowedMime = allowedMimes.includes(file.mimetype);
+  const isAllowedExt = allowedExts.includes(ext);
 
-  if (isPdfMime || hasPdfExt) {
+  if (isAllowedMime || isAllowedExt) {
     cb(null, true);
   } else {
-    cb(new Error('ONLY_PDF_ALLOWED'));
+    cb(new Error('ONLY_PDF_AND_IMAGES_ALLOWED'));
   }
 };
 
-// Multer upload middleware instance (NO fileSize limit configured)
+// Multer upload middleware instance (supports PDF and images up to 50MB)
 export const homeworkUpload = multer({
   storage,
-  fileFilter
+  fileFilter,
+  limits: { fileSize: 50 * 1024 * 1024 }
 });
+
+// Multi-file upload middleware for multi-page handwritten homework
+export const homeworkMultiUpload = homeworkUpload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'files', maxCount: 15 },
+  { name: 'pages', maxCount: 15 }
+]);
 
 /**
  * Helper to safely delete an uploaded file from disk
@@ -352,5 +365,98 @@ export const removeQueryFile = (filenameOrPath: string): void => {
   }
 };
 
+/**
+ * Persist an uploaded file buffer into the database StoredFile table for durability across dyno restarts
+ */
+export async function persistFile(
+  filePath: string,
+  filename: string,
+  mimeType: string,
+  originalName?: string
+): Promise<void> {
+  try {
+    if (!fs.existsSync(filePath)) return;
+    const fileBuffer = fs.readFileSync(filePath);
+    await (prisma as any).storedFile.upsert({
+      where: { filename },
+      create: {
+        filename,
+        originalName: originalName || path.basename(filePath),
+        mimeType: mimeType || 'application/octet-stream',
+        size: fileBuffer.length,
+        data: fileBuffer
+      },
+      update: {
+        originalName: originalName || path.basename(filePath),
+        mimeType: mimeType || 'application/octet-stream',
+        size: fileBuffer.length,
+        data: fileBuffer
+      }
+    });
+    console.log(`[FileStorage] Persisted ${filename} (${fileBuffer.length} bytes) to database.`);
+  } catch (err: any) {
+    console.warn(`[FileStorage] Failed to persist file ${filename} to database:`, err.message);
+  }
+}
 
+/**
+ * Ensures a file exists on disk, pulling it from the database if absent.
+ * Returns the full path to the local cached file, or null if not found.
+ */
+export async function ensureFileOnDisk(
+  filename: string,
+  targetDir: string
+): Promise<string | null> {
+  if (!filename) return null;
+  const safeName = path.basename(filename);
+  const fullPath = path.join(targetDir, safeName);
 
+  // If already on disk, return immediately
+  if (fs.existsSync(fullPath)) {
+    return fullPath;
+  }
+
+  // Not on disk (e.g. dyno restart) -> fetch from database
+  try {
+    const record = await (prisma as any).storedFile.findUnique({
+      where: { filename: safeName }
+    });
+
+    if (record && record.data) {
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+      fs.writeFileSync(fullPath, record.data);
+      console.log(`[FileStorage] Restored ${safeName} (${record.size || record.data.length} bytes) from database to disk.`);
+      return fullPath;
+    }
+  } catch (err: any) {
+    console.warn(`[FileStorage] Failed to restore file ${safeName} from database:`, err.message);
+  }
+
+  return null;
+}
+
+/**
+ * Remove file from disk AND database
+ */
+export async function deletePersistedFile(
+  filenameOrPath: string,
+  dir: string
+): Promise<void> {
+  if (!filenameOrPath) return;
+  const filename = path.basename(filenameOrPath);
+  const fullPath = path.join(dir, filename);
+  try {
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+    }
+  } catch (err: any) {
+    console.warn(`[FileStorage] Failed to delete disk file ${fullPath}:`, err.message);
+  }
+  try {
+    await (prisma as any).storedFile.deleteMany({ where: { filename } });
+  } catch (err: any) {
+    console.warn(`[FileStorage] Failed to delete database StoredFile ${filename}:`, err.message);
+  }
+}

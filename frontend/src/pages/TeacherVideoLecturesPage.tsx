@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { tr, trSubject, trItem } from '../utils/tr';
+import { useAuth } from '../context/AuthContext';
+import {
+  getUserAssignedSubjects,
+  formatUserSubjectsDisplay
+} from '../utils/subjectConstants';
 import api from '../services/api';
 import {
   Video,
@@ -68,6 +73,7 @@ interface VideoLectureItem {
 }
 
 export const TeacherVideoLecturesPage: React.FC = () => {
+  const { user } = useAuth();
   const { i18n } = useTranslation('common');
 
   const [activeTab, setActiveTab] = useState<'UPLOAD' | 'LECTURES'>('UPLOAD');
@@ -76,6 +82,17 @@ export const TeacherVideoLecturesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const allowedSubjects = React.useMemo(() => {
+    if (user?.role !== 'TEACHER') return subjects;
+    const assigned = getUserAssignedSubjects(user).map(s => s.toLowerCase());
+    if (assigned.length === 0) return subjects;
+    return subjects.filter(s => {
+      const sName = (s.name || '').trim().toLowerCase();
+      const sNameGu = (s.nameGu || '').trim().toLowerCase();
+      return assigned.some(a => sName === a || sNameGu === a || sName.includes(a) || a.includes(sName));
+    });
+  }, [subjects, user]);
 
   // Filters
   const [standardFilter, setStandardFilter] = useState<string>('ALL');
@@ -543,7 +560,7 @@ export const TeacherVideoLecturesPage: React.FC = () => {
                   className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-purple-500 cursor-pointer"
                 >
                   <option value="">-- {tr('વિષય પસંદ કરો', 'Select Subject')} --</option>
-                  {subjects
+                  {allowedSubjects
                     .filter(s => !s.standard || s.standard === standard)
                     .map(s => (
                       <option key={s.id} value={s.id}>
@@ -799,7 +816,7 @@ export const TeacherVideoLecturesPage: React.FC = () => {
                   className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-purple-500 cursor-pointer"
                 >
                   <option value="ALL">-- {tr('બધા વિષયો', 'All Subjects')} --</option>
-                  {subjects.map(s => (
+                  {allowedSubjects.map(s => (
                     <option key={s.id} value={s.id}>
                       {trSubject(s)}
                     </option>

@@ -1,11 +1,24 @@
 import React from 'react';
-import { Volume2, Sparkles, BookOpen, Headphones } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
+import { Sparkles, Headphones, FileText, Type, BookOpenCheck } from 'lucide-react';
 import { tr } from '../utils/tr';
 import { PDFSpeechReader } from '../components/PDFSpeechReader';
+import { CustomTextInputTTS } from '../components/CustomTextInputTTS';
+import { PDFSummaryNotes } from '../components/PDFSummaryNotes';
 
 export const TextToSpeechPage: React.FC = () => {
-  const { t } = useTranslation('common');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get('tab');
+  const currentTab: 'pdf' | 'text' | 'summary' =
+    rawTab === 'custom' || rawTab === 'text'
+      ? 'text'
+      : rawTab === 'summary' || rawTab === 'notes'
+      ? 'summary'
+      : 'pdf';
+
+  const setTab = (tab: 'pdf' | 'text' | 'summary') => {
+    setSearchParams({ tab });
+  };
 
   return (
     <div className="space-y-6 pb-12 min-h-[calc(100vh-6rem)]">
@@ -19,18 +32,18 @@ export const TextToSpeechPage: React.FC = () => {
             <div className="flex items-center space-x-2">
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 {tr(
-                  'ટેક્સ્ટ-ટુ-સ્પીચ (PDF અવાજ વાચક)',
-                  'Text to Speech (PDF Voice Reader)',
-                  'टेक्स्ट-टू-स्पीच (PDF वॉइस रीडर)'
+                  'PDF વૉઇસ રીડર, TTS અને AI સારાંશ-નોટ્સ',
+                  'PDF Voice Reader, Multilingual TTS & Study Notes',
+                  'PDF वॉइस रीडर, बहुभाषी TTS और अध्ययन नोट्स'
                 )}
               </h1>
               <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
             </div>
             <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
               {tr(
-                'તમારા અભ્યાસની કોઈપણ પીડીએફ (.pdf) ફાઇલ અપલોડ કરો અને તેને ગુજરાતી, હિન્દી કે અંગ્રેજીમાં કુદરતી ઉચ્ચારણ સાથે સાંભળો.',
-                'Upload any study PDF document to listen aloud with authentic Gujarati, Hindi, and English pronunciation.',
-                'अपने अध्ययन का कोई भी पीडीएफ दस्तावेज़ अपलोड करें और इसे गुजराती, हिन्दी या अंग्रेज़ी में प्राकृतिक आवाज़ में सुनें।'
+                'પીડીએફ પુસ્તકો સાંભળો, કોઈપણ લખાણને કુદરતી અવાજમાં બદલો અથવા પીડીએફમાંથી રિવિઝન નોટ્સ, વ્યાખ્યાઓ અને પરીક્ષા પ્રશ્નો તૈયાર કરો.',
+                'Listen aloud to study PDFs, convert text to speech with authentic Indic phonetics, or generate high-yield revision notes and summaries.',
+                'अध्ययन सामग्री सुनें, पाठ को आवाज़ में बदलें या पीडीएफ से स्वतः त्वरित सारांश, परिभाषाएं और रिवीजन नोट्स बनाएं।'
               )}
             </p>
           </div>
@@ -53,8 +66,55 @@ export const TextToSpeechPage: React.FC = () => {
         </div>
       </div>
 
-      {/* PDF Reader Component */}
-      <PDFSpeechReader />
+      {/* Mode Switcher Tabs */}
+      <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 p-1.5 rounded-2xl w-fit shadow-md overflow-x-auto max-w-full">
+        <button
+          onClick={() => setTab('pdf')}
+          className={`flex items-center space-x-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 ${
+            currentTab === 'pdf'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          <span>
+            {tr('૧. PDF વૉઇસ રીડર (દસ્તાવેજ)', '1. PDF Voice Reader', '१. PDF वॉइस रीडर')}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setTab('text')}
+          className={`flex items-center space-x-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 ${
+            currentTab === 'text'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Type className="w-4 h-4" />
+          <span>
+            {tr('૨. ટેક્સ્ટ-ટુ-સ્પીચ (ટાઇપ/પેસ્ટ)', '2. Text-to-Speech (Type/Paste)', '२. टेक्स्ट-टू-स्पीच (टाइप/पेस्ट)')}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setTab('summary')}
+          className={`flex items-center space-x-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 ${
+            currentTab === 'summary'
+              ? 'bg-gradient-to-r from-indigo-600 to-pink-600 text-white shadow-lg shadow-indigo-500/25'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <BookOpenCheck className="w-4 h-4" />
+          <span>
+            {tr('૩. PDF સારાંશ અને નોટ્સ (AI Notes)', '3. PDF Summary & Notes', '३. PDF सारांश और नोट्स')}
+          </span>
+        </button>
+      </div>
+
+      {/* Render Active Modality */}
+      {currentTab === 'pdf' && <PDFSpeechReader />}
+      {currentTab === 'text' && <CustomTextInputTTS />}
+      {currentTab === 'summary' && <PDFSummaryNotes />}
     </div>
   );
 };

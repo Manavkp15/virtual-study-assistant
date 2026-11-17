@@ -5,7 +5,9 @@ import {
   getWeakTopics,
   getTopicHeatmap,
   getPredictions,
-  getSubjectsList
+  getSubjectsList,
+  getParentStudentOverview,
+  updateParentStudentSettings
 } from '../controllers/studentController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -17,5 +19,7 @@ router.get('/weak-topics', authenticateToken, getWeakTopics);
 router.get('/heatmap', authenticateToken, getTopicHeatmap);
 router.get('/predictions', authenticateToken, getPredictions);
 router.get('/subjects', authenticateToken, getSubjectsList);
+router.get('/parent-overview', authenticateToken, getParentStudentOverview);
+router.put('/parent-settings', authenticateToken, updateParentStudentSettings);
 
 export default router;

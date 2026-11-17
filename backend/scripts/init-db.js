@@ -9,6 +9,13 @@ if (databaseUrl.startsWith('postgres://')) {
 }
 
 async function init() {
+  console.log('[Database Init] Preparing Prisma schema and client...');
+  try {
+    execSync('node scripts/prepare-prisma.js', { stdio: 'inherit', env: process.env });
+  } catch (err) {
+    console.warn('[Database Init] prepare-prisma warning:', err.message);
+  }
+
   console.log('[Database Init] Pushing schema to database...');
   try {
     execSync('npx prisma db push --skip-generate', { stdio: 'inherit', env: process.env });

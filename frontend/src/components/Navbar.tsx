@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useParentMode } from '../context/ParentModeContext';
 import api from '../services/api';
 import { NotificationItem } from '../types';
-import { Flame, Bell, Globe, Menu, Sun, Moon, Sparkles, User as UserIcon } from 'lucide-react';
+import { Flame, Bell, Globe, Menu, Sun, Moon, Sparkles, User as UserIcon, Users, ShieldCheck, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { tr } from '../utils/tr';
+import { getLocalizedSubjectName, getUserAssignedSubjects, formatUserSubjectsDisplay } from '../utils/subjectConstants';
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -24,6 +26,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   externalNotificationsTrigger
 }) => {
   const { user } = useAuth();
+  const { isParentMode, enterParentMode, exitParentMode } = useParentMode();
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation(['common', 'notifications']);
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
@@ -33,8 +37,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [currentLang, setCurrentLang] = useState<string>(i18n.language || 'en');
 
   // Effective role
-  const effectiveRole: 'STUDENT' | 'TEACHER' | 'ADMIN' =
-    user?.role === 'STUDENT'
+  const effectiveRole: 'STUDENT' | 'TEACHER' | 'ADMIN' | 'PARENT' =
+    isParentMode && user?.role === 'STUDENT'
+      ? 'PARENT'
+      : user?.role === 'STUDENT'
       ? 'STUDENT'
       : user?.role === 'TEACHER'
       ? 'TEACHER'
@@ -76,6 +82,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Determine current Page Title dynamically
   const getPageTitle = (): string => {
     const path = location.pathname;
+    if (path.startsWith('/parent-dashboard') || path.startsWith('/parent/')) {
+      return tr('વાલી પોર્ટલ અને નિરીક્ષણ', 'Parent Portal & Monitoring', 'अभिभावक पोर्टल और निगरानी');
+    }
     if (path === '/dashboard') {
       return tr('વિદ્યાર્થી ડેશબોર્ડ', 'Student Dashboard', 'विद्यार्थी डैशबोर्ड');
     }
@@ -97,11 +106,14 @@ export const Navbar: React.FC<NavbarProps> = ({
     if (path.startsWith('/tests')) {
       return tr('પરીક્ષાઓ અને ટેસ્ટ', 'Tests & Exams', 'परीक्षाएं और अभ्यास');
     }
-    if (path.startsWith('/homework') || path.startsWith('/teacher/homework')) {
-      return tr('ગૃહકાર્ય સંચાલન', 'Homework Management', 'गृहकार्य प्रबंधन');
+    if (path.startsWith('/teacher/homework')) {
+      return tr('ગૃહકાર્ય અને ચકાસણી', 'Homework & Checking', 'गृहकार्य और जाँच');
+    }
+    if (path.startsWith('/homework')) {
+      return tr('ગૃહકાર્ય', 'Homework', 'गृहकार्य');
     }
     if (path.startsWith('/mistake') || path.startsWith('/doubt')) {
-      return tr('શંકા નિવારણ કેન્દ્ર', 'Doubt Center', 'संदेह निवारण केंद्र');
+      return tr('ભૂલ પુસ્તિકા', 'Mistake Book', 'मिस्टेक बुक');
     }
     if (path.startsWith('/study-plan')) {
       return tr('અભ્યાસ યોજના', 'Study Plan', 'अध्ययन योजना');
@@ -112,11 +124,17 @@ export const Navbar: React.FC<NavbarProps> = ({
     if (path.startsWith('/video-lectures') || path.startsWith('/teacher/video-lectures')) {
       return tr('વિડિઓ લેક્ચર્સ', 'Video Lectures', 'वीडियो लेक्चर्स');
     }
+    if (path.startsWith('/student/ai-dictionary') || path.startsWith('/ai-dictionary') || path.startsWith('/dictionary')) {
+      return tr('AI શબ્દકોશ', 'AI Dictionary', 'एआई शब्दकोश');
+    }
     if (path.startsWith('/ai-assistant')) {
       return tr('AI અભ્યાસ મદદગાર', 'AI Assistant', 'एआई अध्ययन सहायक');
     }
-    if (path.startsWith('/text-to-speech') || path.startsWith('/pdf-reader')) {
-      return tr('PDF અવાજ વાચક', 'PDF Voice Reader', 'PDF वॉइस रीडर');
+    if (path.startsWith('/text-to-speech') || path.startsWith('/pdf-voice-reader') || path.startsWith('/pdf-reader') || path.startsWith('/pdf-summary') || path.startsWith('/pdf-notes')) {
+      return tr('PDF વૉઇસ રીડર, TTS & નોટ્સ', 'PDF Voice Reader, TTS & Notes', 'PDF वॉइस रीडर, TTS और नोट्स');
+    }
+    if (path.startsWith('/pomodoro')) {
+      return tr('પોમોડોરો સ્ટડી ટાઈમર', 'Pomodoro Study Timer', 'पोमोडोरो स्टडी टाइमर');
     }
     if (path.startsWith('/profile')) {
       return tr('પ્રોફાઇલ અને સેટિંગ્સ', 'Profile & Settings', 'मेरी प्रोफ़ाइल और सेटिंग्स');
@@ -130,7 +148,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const pageTitle = getPageTitle();
 
   return (
-    <header className="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 transition-all select-none">
+    <header className="h-16 shrink-0 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30 transition-all select-none">
       {/* ========================================================================= */}
       {/* Left: [ ☰ Hamburger ] [ School Logo ] [ Page Title ]                      */}
       {/* On Mobile: [ ☰ Hamburger ] [ School Logo ]                                */}
@@ -140,9 +158,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="p-2 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 active:scale-95 rounded-xl border border-slate-700/60 transition-all shrink-0 cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+          className="flex items-center justify-center p-2 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 active:scale-95 rounded-xl border border-slate-700/60 transition-all shrink-0 cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40"
           aria-label={tr('નેવિગેશન મેનૂ ખોલો/બંધ કરો', 'Toggle navigation menu', 'नेविगेशन मेनू टॉगल करें')}
-          title={tr('મેનૂ (☰)', 'Navigation Menu (☰)', 'नेविगेशन मेनू (☰)')}
+          title={tr('નેવિગેશન મેનૂ ખોલો/બંધ કરો', 'Toggle Navigation Menu', 'नेविगेशन मेनू टॉगल करें')}
         >
           <Menu className="w-5 h-5" />
         </button>
@@ -176,17 +194,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Sparkles className="w-3 h-3 text-purple-400" />
               <span>{tr('મોડ', 'Mode', 'मोड')}:</span>
             </span>
-            <button
-              type="button"
-              onClick={() => onSwitchRoleView('ADMIN')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                effectiveRole === 'ADMIN'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Admin
-            </button>
+            {effectiveRole === 'ADMIN' && (
+              <button
+                type="button"
+                onClick={() => onSwitchRoleView('ADMIN')}
+                className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer bg-purple-600 text-white shadow-sm"
+              >
+                Admin
+              </button>
+            )}
             <button
               type="button"
               onClick={() => onSwitchRoleView('TEACHER')}
@@ -216,6 +232,45 @@ export const Navbar: React.FC<NavbarProps> = ({
           </select>
         </div>
 
+        {/* Parent Mode Quick Toggle (Student Only) */}
+        {user?.role === 'STUDENT' && (
+          <div>
+            {isParentMode ? (
+              <div className="flex items-center space-x-1 sm:space-x-1.5 bg-purple-950/70 border border-purple-500/40 p-1 rounded-xl shadow-xs">
+                <span className="hidden sm:inline-flex items-center space-x-1 px-2 py-0.5 text-xs font-bold text-purple-300">
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
+                  <span>{tr('વાલી મોડ', 'Parent Mode', 'अभिभावक मोड')}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    exitParentMode();
+                    navigate('/dashboard');
+                  }}
+                  className="px-2 py-1 rounded-lg text-xs font-bold bg-rose-600/25 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30 flex items-center space-x-1 cursor-pointer transition-all"
+                  title={tr('વિદ્યાર્થી મોડ પર પાછા ફરો', 'Return to Student Mode', 'विद्यार्थी मोड पर वापस जाएं')}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline">{tr('બહાર નીકળો', 'Exit', 'बाहर निकलें')}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  enterParentMode();
+                  navigate('/parent-dashboard');
+                }}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 hover:text-purple-200 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                title={tr('વાલી મોડ સક્રિય કરો (Parent Mode)', 'Activate Parent Mode', 'अभिभावक मोड सक्रिय करें')}
+              >
+                <Users className="w-3.5 h-3.5 text-purple-400" />
+                <span className="inline">{tr('વાલી મોડ', 'Parent Mode', 'अभिभावक मोड')}</span>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Standard Badge (Student Only) */}
         {user?.role === 'STUDENT' && (
           <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-xs">
@@ -228,6 +283,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-xs shadow-sm">
             <Flame className="w-3.5 h-3.5 fill-amber-400" />
             <span>{user?.profile?.streakCount || 1} {t('streak')}</span>
+          </div>
+        )}
+
+        {/* Teacher Subject Badge */}
+        {(effectiveRole === 'TEACHER' || user?.role === 'TEACHER') && getUserAssignedSubjects(user).length > 0 && (
+          <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold text-xs shadow-sm">
+            <span>📖 {formatUserSubjectsDisplay(getUserAssignedSubjects(user), currentLang)}</span>
           </div>
         )}
 

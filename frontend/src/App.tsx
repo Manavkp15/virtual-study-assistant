@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -16,7 +16,7 @@ import { TestResultPage } from './pages/TestResultPage';
 import { MistakeBookPage } from './pages/MistakeBookPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { AIAssistantPage } from './pages/AIAssistantPage';
-import { TextToSpeechPage } from './pages/TextToSpeechPage';
+import { StepByStepSolverPage } from './pages/StepByStepSolverPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { HomeworkPage } from './pages/HomeworkPage';
@@ -25,10 +25,23 @@ import { StudyMaterialsPage } from './pages/StudyMaterialsPage';
 import { TeacherStudyMaterialsPage } from './pages/TeacherStudyMaterialsPage';
 import { VideoLecturesPage } from './pages/VideoLecturesPage';
 import { TeacherVideoLecturesPage } from './pages/TeacherVideoLecturesPage';
+import { TextToSpeechPage } from './pages/TextToSpeechPage';
+import { PomodoroPage } from './pages/PomodoroPage';
+import { NcertKnowledgeBasePage } from './pages/NcertKnowledgeBasePage';
+import { AiDictionaryPage } from './pages/AiDictionaryPage';
+import { ParentDashboardPage } from './pages/ParentDashboardPage';
+import { PomodoroProvider, usePomodoro } from './context/PomodoroContext';
+import { PomodoroMiniWidget } from './components/PomodoroMiniWidget';
+import { FullScreenBreakTimer } from './components/FullScreenBreakTimer';
 import { FocusManager } from './components/FocusManager';
+import { ParentModeProvider } from './context/ParentModeContext';
+import { ParentPinModal } from './components/ParentPinModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const ProtectedLayout: React.FC = () => {
   const { user, token, loading } = useAuth();
+  const { mode } = usePomodoro();
+  const isBreak = mode === 'break' || mode === 'long_break';
   
   // Desktop collapse state (persisted in localStorage)
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState<boolean>(() => {
@@ -43,27 +56,69 @@ const ProtectedLayout: React.FC = () => {
     if (user?.role === 'STUDENT') return 'STUDENT';
     if (user?.role === 'TEACHER') return 'TEACHER';
     const saved = localStorage.getItem('vsa_active_role_view');
-    if (saved === 'TEACHER' || saved === 'ADMIN') return saved;
-    return 'ADMIN';
+    if (saved === 'ADMIN') return 'ADMIN';
+    return 'TEACHER';
   });
 
   const [notificationsTrigger, setNotificationsTrigger] = useState(0);
 
-  const handleToggleDesktopCollapse = () => {
+  const handleToggleDesktopCollapse = useCallback(() => {
     setIsDesktopCollapsed(prev => {
       const next = !prev;
       localStorage.setItem('vsa_sidebar_collapsed', String(next));
       return next;
     });
-  };
+  }, []);
 
-  const handleToggleSidebar = () => {
+  const handleToggleSidebar = useCallback(() => {
     if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setIsMobileDrawerOpen(false);
       handleToggleDesktopCollapse();
     } else {
       setIsMobileDrawerOpen(prev => !prev);
     }
-  };
+  }, [handleToggleDesktopCollapse]);
+
+  // Tab key keyboard shortcut to open and close the navigation bar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Tab key pressed without modifier keys (Ctrl, Alt, Meta)
+      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Do not toggle when in Pomodoro break mode (navigation is hidden)
+        if (isBreak) return;
+
+        const target = (e.target as HTMLElement) || (document.activeElement as HTMLElement | null);
+
+        // Do not intercept if user is interacting with an editable field (inputs, textarea, select, contenteditable)
+        const isEditable =
+          target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.tagName === 'SELECT' ||
+            target.isContentEditable ||
+            target.getAttribute?.('contenteditable') === 'true' ||
+            Boolean(target.closest?.('input, textarea, select, [contenteditable="true"]')));
+
+        if (isEditable) {
+          return;
+        }
+
+        // Do not intercept if an accessible dialog/modal is open
+        if (target?.closest?.('[role="dialog"], [aria-modal="true"]')) {
+          return;
+        }
+
+        // Prevent browser's default focus cycling and toggle the navigation bar
+        e.preventDefault();
+        handleToggleSidebar();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isBreak, handleToggleSidebar]);
 
   const handleSwitchRoleView = (role: 'STUDENT' | 'TEACHER' | 'ADMIN') => {
     setActiveRoleView(role);
@@ -86,20 +141,22 @@ const ProtectedLayout: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans relative overflow-x-hidden">
-      {/* Sidebar with Desktop Sticky Collapsible & Mobile Slide-Out Drawer */}
-      <Sidebar
-        isDesktopCollapsed={isDesktopCollapsed}
-        onToggleDesktopCollapse={handleToggleDesktopCollapse}
-        isMobileOpen={isMobileDrawerOpen}
-        onCloseMobile={() => setIsMobileDrawerOpen(false)}
-        activeRoleView={activeRoleView}
-        onSwitchRoleView={handleSwitchRoleView}
-        onOpenNotifications={() => setNotificationsTrigger(n => n + 1)}
-      />
+    <div className="flex h-screen w-screen bg-slate-950 text-slate-100 font-sans overflow-hidden relative">
+      {/* Sidebar with Desktop Sticky Collapsible & Mobile Slide-Out Drawer - Completely hidden during Break Mode */}
+      {!isBreak && (
+        <Sidebar
+          isDesktopCollapsed={isDesktopCollapsed}
+          onToggleDesktopCollapse={handleToggleDesktopCollapse}
+          isMobileOpen={isMobileDrawerOpen}
+          onCloseMobile={() => setIsMobileDrawerOpen(false)}
+          activeRoleView={activeRoleView}
+          onSwitchRoleView={handleSwitchRoleView}
+          onOpenNotifications={() => setNotificationsTrigger(n => n + 1)}
+        />
+      )}
 
       {/* Main App Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 relative z-10 transition-all duration-300">
+      <div className={`flex-1 flex flex-col h-full min-w-0 overflow-hidden relative z-10 transition-all duration-300 ${isBreak ? 'hidden' : ''}`}>
         <Navbar
           onToggleSidebar={handleToggleSidebar}
           isSidebarOpen={isMobileDrawerOpen}
@@ -108,10 +165,16 @@ const ProtectedLayout: React.FC = () => {
           onSwitchRoleView={handleSwitchRoleView}
           externalNotificationsTrigger={notificationsTrigger}
         />
-        <main className="flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden overscroll-contain">
           <Outlet />
         </main>
+        <PomodoroMiniWidget />
       </div>
+
+      {/* Distraction-Free Full-Screen Break Timer - completely takes over viewport, hiding all navigation */}
+      {isBreak && (
+        <FullScreenBreakTimer />
+      )}
     </div>
   );
 };
@@ -153,65 +216,90 @@ const IndexRedirect: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <Router>
-          <FocusManager />
-          <Routes>
-          {/* Public Auth Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <PomodoroProvider>
+            <ParentModeProvider>
+              <Router>
+                <FocusManager />
+                <ParentPinModal />
+                <Routes>
+              {/* Public Auth Routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/teacher-login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/teacher-register" element={<Register />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
 
-          {/* Full Screen Exam Mode Route */}
-          <Route
-            path="/tests/:id"
-            element={
-              <React.Suspense fallback={<div>Loading Test...</div>}>
-                <TestTakingPage />
-              </React.Suspense>
-            }
-          />
+              {/* Full Screen Exam Mode Route */}
+              <Route
+                path="/tests/:id"
+                element={
+                  <React.Suspense fallback={<div>Loading Test...</div>}>
+                    <TestTakingPage />
+                  </React.Suspense>
+                }
+              />
 
-          {/* Protected Main Application Routes */}
-          <Route element={<ProtectedLayout />}>
-            <Route path="/" element={<IndexRedirect />} />
-            <Route path="/dashboard" element={<StudentRoute />} />
-            <Route path="/teacher-dashboard" element={<TeacherRoute />} />
-            <Route path="/admin" element={<TeacherRoute />} />
+              {/* Protected Main Application Routes */}
+              <Route element={<ProtectedLayout />}>
+                <Route path="/" element={<IndexRedirect />} />
+                <Route path="/dashboard" element={<StudentRoute />} />
+                <Route path="/teacher-dashboard" element={<TeacherRoute />} />
+                <Route path="/admin" element={<TeacherRoute />} />
 
-            {/* Video Lecture Routes */}
-            <Route path="/video-lectures" element={<VideoLecturesPage />} />
-            <Route path="/teacher/video-lectures" element={<RequireTeacher><TeacherVideoLecturesPage /></RequireTeacher>} />
+                {/* Video Lecture Routes */}
+                <Route path="/video-lectures" element={<VideoLecturesPage />} />
+                <Route path="/teacher/video-lectures" element={<RequireTeacher><TeacherVideoLecturesPage /></RequireTeacher>} />
 
-            {/* Study Material Routes */}
-            <Route path="/study-materials" element={<StudyMaterialsPage />} />
-            <Route path="/teacher/materials" element={<RequireTeacher><TeacherStudyMaterialsPage /></RequireTeacher>} />
-            <Route path="/teacher/study-materials" element={<RequireTeacher><TeacherStudyMaterialsPage /></RequireTeacher>} />
+                {/* Study Material Routes */}
+                <Route path="/study-materials" element={<StudyMaterialsPage />} />
+                <Route path="/teacher/materials" element={<RequireTeacher><TeacherStudyMaterialsPage /></RequireTeacher>} />
+                <Route path="/teacher/study-materials" element={<RequireTeacher><TeacherStudyMaterialsPage /></RequireTeacher>} />
 
-            {/* Homework Management Routes */}
-            <Route path="/homework" element={<HomeworkPage />} />
-            <Route path="/teacher/homework" element={<RequireTeacher><TeacherHomeworkPage /></RequireTeacher>} />
+                {/* Homework Management Routes */}
+                <Route path="/homework" element={<HomeworkPage />} />
+                <Route path="/teacher/homework" element={<RequireTeacher><TeacherHomeworkPage /></RequireTeacher>} />
+                <Route path="/parent-dashboard" element={<ParentDashboardPage />} />
+                <Route path="/parent/homework" element={<ParentDashboardPage />} />
 
-            {/* Student Specific Routes */}
-            <Route path="/subjects" element={<SubjectsPage />} />
-            <Route path="/study-plan" element={<StudyPlanPage />} />
-            <Route path="/tests" element={<TestsPage />} />
-            <Route path="/tests/:id/results" element={<TestResultPage />} />
-            <Route path="/mistakes" element={<MistakeBookPage />} />
-            <Route path="/mistake-book" element={<MistakeBookPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/ai-assistant" element={<AIAssistantPage />} />
-            <Route path="/text-to-speech" element={<TextToSpeechPage />} />
-            <Route path="/pdf-reader" element={<TextToSpeechPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
+                {/* Student Specific Routes */}
+                <Route path="/subjects" element={<SubjectsPage />} />
+                <Route path="/study-plan" element={<StudyPlanPage />} />
+                <Route path="/tests" element={<TestsPage />} />
+                <Route path="/tests/:id/results" element={<TestResultPage />} />
+                <Route path="/mistakes" element={<MistakeBookPage />} />
+                <Route path="/mistake-book" element={<MistakeBookPage />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/ai-assistant" element={<AIAssistantPage />} />
+                <Route path="/step-by-step-solver" element={<StepByStepSolverPage />} />
+                <Route path="/solver" element={<StepByStepSolverPage />} />
+                <Route path="/stem-solver" element={<StepByStepSolverPage />} />
+                <Route path="/text-to-speech" element={<TextToSpeechPage />} />
+                <Route path="/pdf-voice-reader" element={<TextToSpeechPage />} />
+                <Route path="/pdf-reader" element={<TextToSpeechPage />} />
+                <Route path="/pdf-summary-notes" element={<TextToSpeechPage />} />
+                <Route path="/pdf-notes" element={<TextToSpeechPage />} />
+                <Route path="/pomodoro" element={<PomodoroPage />} />
+                <Route path="/pomodoro-timer" element={<PomodoroPage />} />
+                <Route path="/ncert-knowledge" element={<NcertKnowledgeBasePage />} />
+                <Route path="/ncert-database" element={<NcertKnowledgeBasePage />} />
+                <Route path="/ncert" element={<NcertKnowledgeBasePage />} />
+                <Route path="/student/ai-dictionary" element={<AiDictionaryPage />} />
+                <Route path="/ai-dictionary" element={<AiDictionaryPage />} />
+                <Route path="/dictionary" element={<AiDictionaryPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
 
-            <Route path="*" element={<IndexRedirect />} />
-          </Route>
-        </Routes>
-      </Router>
-    </AuthProvider>
-    </ThemeProvider>
+                <Route path="*" element={<IndexRedirect />} />
+              </Route>
+            </Routes>
+          </Router>
+          </ParentModeProvider>
+          </PomodoroProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 };
 

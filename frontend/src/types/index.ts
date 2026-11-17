@@ -1,5 +1,13 @@
 export type Role = 'STUDENT' | 'TEACHER' | 'ADMIN';
 
+export interface TeacherSubjectMapping {
+  id: string;
+  teacherId: string;
+  subjectId: string;
+  subject?: Subject;
+  createdAt?: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -7,8 +15,13 @@ export interface User {
   role: Role;
   avatarUrl?: string | null;
   mobileNumber?: string | null;
+  teachingSubjects?: string | null;
+  teacherSubject?: string | null;
+  subjects?: string[];
+  teacherSubjects?: any[];
   emailVerified?: boolean;
   profile?: StudentProfile;
+  subjectMappings?: TeacherSubjectMapping[];
 }
 
 export interface StudentProfile {
@@ -78,12 +91,91 @@ export interface QuestionOption {
   isCorrect?: boolean;
 }
 
+export interface SolutionStep {
+  stepNumber: number;
+  title: string;
+  titleGu?: string;
+  titleHi?: string;
+  why: string;
+  whyGu?: string;
+  whyHi?: string;
+  calculation: string;
+  intermediateResult?: string;
+  intermediateResultGu?: string;
+  intermediateResultHi?: string;
+}
+
+export interface StepByStepSolution {
+  id?: string;
+  subject: string;
+  subjectGu?: string;
+  subjectHi?: string;
+  topic: string;
+  topicGu?: string;
+  topicHi?: string;
+  problemStatement: string;
+  problemStatementGu?: string;
+  problemStatementHi?: string;
+  conceptReasoning: string;
+  conceptReasoningGu?: string;
+  conceptReasoningHi?: string;
+  formulas: string[];
+  givenValues?: Record<string, string>;
+  toFind?: string;
+  toFindGu?: string;
+  toFindHi?: string;
+  steps: SolutionStep[];
+  verification?: string;
+  verificationGu?: string;
+  verificationHi?: string;
+  finalAnswer: string;
+  finalAnswerGu?: string;
+  finalAnswerHi?: string;
+  keyTakeaway: string;
+  keyTakeawayGu?: string;
+  keyTakeawayHi?: string;
+  commonMistakes?: string[];
+  commonMistakesGu?: string[];
+  commonMistakesHi?: string[];
+  alternativeMethod?: {
+    title: string;
+    description: string;
+    calculation?: string;
+  };
+  alternativeMethodGu?: {
+    title: string;
+    description: string;
+    calculation?: string;
+  };
+  alternativeMethodHi?: {
+    title: string;
+    description: string;
+    calculation?: string;
+  };
+  practiceChallenge?: {
+    problem: string;
+    hint: string;
+    answer: string;
+  };
+  practiceChallengeGu?: {
+    problem: string;
+    hint: string;
+    answer: string;
+  };
+  practiceChallengeHi?: {
+    problem: string;
+    hint: string;
+    answer: string;
+  };
+}
+
 export interface Question {
   id: string;
   questionText: string;
   questionTextGu?: string;
   explanation?: string;
   explanationGu?: string;
+  stepByStepSolution?: StepByStepSolution;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
   subjectName?: string;
   subjectNameGu?: string;
@@ -161,6 +253,7 @@ export interface TestResult {
     isCorrect: boolean;
     explanation?: string;
     explanationGu?: string;
+    stepByStepSolution?: StepByStepSolution;
   }>;
 }
 
@@ -219,6 +312,7 @@ export interface RemedialResult {
     isCorrect: boolean;
     explanation?: string;
     explanationGu?: string;
+    stepByStepSolution?: StepByStepSolution;
   }>;
 }
 
@@ -247,6 +341,7 @@ export interface MistakeEntry {
   questionTextGu?: string;
   explanation?: string;
   explanationGu?: string;
+  stepByStepSolution?: StepByStepSolution;
   difficulty: string;
   subjectName: string;
   subjectNameGu?: string;

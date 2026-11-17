@@ -68,7 +68,7 @@
     "replacePdf": "પીડીએફ બદલો"
   },
   "form": {
-    "title": "સાહિત્ય શીર્ષક (અંગ્રેજી)",
+    "title": "સાહિત્ય શીર્ષક",
     "titlePlaceholder": "દા.ત. Algebra – Linear Equations Master Guide",
     "titleGu": "સાહિત્ય શીર્ષક (ગુજરાતી)",
     "titleGuPlaceholder": "દા.ત. બીજગણિત – સુરેખ સમીકરણો માસ્ટર માર્ગદર્શિકા",
@@ -80,7 +80,7 @@
     "selectChapter": "પ્રકરણ પસંદ કરો",
     "topic": "મુદ્દો (Topic)",
     "selectTopic": "મુદ્દો પસંદ કરો",
-    "description": "વર્ણન અને શીખવાના ઉદ્દેશો (અંગ્રેજી)",
+    "description": "વર્ણન અને શીખવાના ઉદ્દેશો",
     "descriptionPlaceholder": "વિદ્યાર્થીઓ આ સાહિત્યમાંથી શું શીખશે તેનું સંક્ષિપ્ત વર્ણન આપો...",
     "descriptionGu": "વર્ણન (ગુજરાતી)",
     "descriptionGuPlaceholder": "વિદ્યાર્થીઓ આ અભ્યાસ સામગ્રીમાંથી શું શીખશે તેનું સંક્ષિપ્ત વર્ણન આપો...",

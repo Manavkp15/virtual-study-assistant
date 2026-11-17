@@ -15,6 +15,18 @@ async function clearAllProfilesAndCredentials() {
 
   try {
     // 1. Delete student activity & submission records
+    const delTeacherSubjects = await prisma.teacherSubjectMapping.deleteMany();
+    console.log(`- Deleted ${delTeacherSubjects.count} teacher subject mappings`);
+
+    const delRemAnswers = await prisma.remedialSessionAnswer.deleteMany();
+    console.log(`- Deleted ${delRemAnswers.count} remedial session answers`);
+
+    const delRemSessions = await prisma.remedialSession.deleteMany();
+    console.log(`- Deleted ${delRemSessions.count} remedial sessions`);
+
+    const delAiChecks = await prisma.aiHomeworkCheck.deleteMany();
+    console.log(`- Deleted ${delAiChecks.count} AI homework checks`);
+
     const delSubHist = await prisma.homeworkSubmissionHistory.deleteMany();
     console.log(`- Deleted ${delSubHist.count} homework submission history records`);
 
@@ -64,6 +76,9 @@ async function clearAllProfilesAndCredentials() {
 
     const delVids = await prisma.videoLecture.deleteMany();
     console.log(`- Deleted ${delVids.count} video lectures`);
+
+    // Detach uploaderId on textbook documents to avoid FK constraint
+    await prisma.textbookDocument.updateMany({ data: { uploaderId: null } });
 
     // 4. Delete all user accounts (emails and passwords)
     const delUsers = await prisma.user.deleteMany();

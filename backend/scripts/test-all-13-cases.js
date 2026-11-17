@@ -61,16 +61,16 @@ async function runTests() {
     });
     const data = await res.json();
     assert(
-      res.status === 201 && data.unverified === true && data.message?.includes('Account created'),
-      'TEST 2: Register with valid email proceeds to verification state',
+      res.status === 201 && data.unverified === false && data.user?.emailVerified === true,
+      'TEST 2: Register with valid email creates account directly verified without email verification required',
       `Status: ${res.status}, Message: ${data.message}`
     );
 
-    // Retrieve the user from DB to check unverified status and verification token hash
+    // Retrieve the user from DB to check verified status in DB
     const userInDb = await prisma.user.findUnique({ where: { email: testEmail } });
     assert(
-      userInDb && userInDb.emailVerified === false && !!userInDb.emailVerificationTokenHash,
-      'TEST 2 (DB Check): User account is created unverified with single-use token hash in DB'
+      userInDb && userInDb.emailVerified === true,
+      'TEST 2 (DB Check): User account is created with emailVerified: true in DB'
     );
   } catch (err) {
     assert(false, 'TEST 2: Register with valid email', err.message);
@@ -163,8 +163,7 @@ async function runTests() {
     assert(false, 'TEST 6: Non-existing email + password', err.message);
   }
 
-  // TEST 8: Correct email + correct password + unverified email
-  // Must show "Please verify your email before logging in." with unverified flag
+  // TEST 8: Correct email + correct password logs in immediately without email verification
   try {
     const res = await fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
@@ -176,12 +175,12 @@ async function runTests() {
     });
     const data = await res.json();
     assert(
-      res.status === 403 && data.unverified === true && data.error === 'Please verify your email before logging in.',
-      'TEST 8: Correct email + correct password + unverified email shows "Please verify your email before logging in."',
-      `Status: ${res.status}, Error: ${data.error}`
+      res.status === 200 && data.message === 'Login successful' && !!data.token,
+      'TEST 8: Correct email + correct password logs in immediately with 200 OK and token (no email verification required)',
+      `Status: ${res.status}, Message: ${data.message}`
     );
   } catch (err) {
-    assert(false, 'TEST 8: Unverified login attempt', err.message);
+    assert(false, 'TEST 8: Login attempt', err.message);
   }
 
   // TEST 9: Click verification email (Verify token)
@@ -192,6 +191,7 @@ async function runTests() {
   await prisma.user.update({
     where: { email: testEmail },
     data: {
+      emailVerified: false,
       emailVerificationTokenHash: tokenHash,
       emailVerificationExpiresAt: new Date(Date.now() + 24 * 3600 * 1000)
     }

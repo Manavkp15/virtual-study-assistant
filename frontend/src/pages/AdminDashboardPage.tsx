@@ -3,6 +3,13 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { useTranslation } from 'react-i18next';
 import { tr, trSubject, trItem, getLocalizedStandardLabel } from '../utils/tr';
+import { useAuth } from '../context/AuthContext';
+import {
+  TEACHER_SUBJECTS,
+  getLocalizedSubjectName,
+  getUserAssignedSubjects,
+  formatUserSubjectsDisplay
+} from '../utils/subjectConstants';
 import {
   ShieldCheck,
   Plus,
@@ -17,20 +24,30 @@ import {
   HelpCircle,
   Save,
   FileText,
+  ClipboardCheck,
   Library,
-  Video
+  Video,
+  TrendingUp,
+  Award,
+  AlertCircle,
+  Clock,
+  CheckCircle,
+  Sparkles
 } from 'lucide-react';
 
 export const AdminDashboardPage: React.FC = () => {
+  const { user } = useAuth();
   const { t, i18n } = useTranslation(['admin', 'common']);
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const [overview, setOverview] = useState<any | null>(null);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
+  const [homeworkAnalytics, setHomeworkAnalytics] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'PERFORMANCE' | 'SUBJECTS' | 'QUESTION_BANK'>('PERFORMANCE');
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'PERFORMANCE' | 'TEACHERS' | 'SUBJECTS' | 'QUESTION_BANK' | 'HOMEWORK_ANALYTICS'>('PERFORMANCE');
 
   // Synchronize active tab with URL query parameters for deep linking from sidebar menu
   useEffect(() => {
@@ -41,8 +58,12 @@ export const AdminDashboardPage: React.FC = () => {
         setActiveTab('SUBJECTS');
       } else if (['questions', 'question_bank'].includes(lower)) {
         setActiveTab('QUESTION_BANK');
-      } else if (['students', 'teachers', 'users', 'performance'].includes(lower)) {
+      } else if (['teachers', 'teacher'].includes(lower)) {
+        setActiveTab('TEACHERS');
+      } else if (['students', 'users', 'performance'].includes(lower)) {
         setActiveTab('PERFORMANCE');
+      } else if (['homework', 'homeworks', 'homework_analytics'].includes(lower)) {
+        setActiveTab('HOMEWORK_ANALYTICS');
       }
     }
   }, [searchParams]);
@@ -74,8 +95,40 @@ export const AdminDashboardPage: React.FC = () => {
   // Edit Question Modal State
   const [editingQuestion, setEditingQuestion] = useState<any | null>(null);
 
+  // Edit Teacher Subject Modal State
+  const [editingTeacher, setEditingTeacher] = useState<any | null>(null);
+  const [teacherNewSubjects, setTeacherNewSubjects] = useState<string[]>([]);
+  const [updatingTeacherSubject, setUpdatingTeacherSubject] = useState<boolean>(false);
+
   const [msg, setMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  const handleUpdateTeacherSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTeacher) return;
+    if (teacherNewSubjects.length === 0) {
+      setErrorMsg(tr('કૃપા કરીને ઓછામાં ઓછો એક વિષય પસંદ કરો.', 'Please select at least one subject.'));
+      return;
+    }
+    setMsg('');
+    setErrorMsg('');
+    setUpdatingTeacherSubject(true);
+    try {
+      await api.put(`/admin/teachers/${editingTeacher.id}/subject`, {
+        subjects: teacherNewSubjects
+      });
+      setMsg(tr(
+        `શિક્ષક "${editingTeacher.name}" ના વિષયો સફળતાપૂર્વક અપડેટ થયા: ${formatUserSubjectsDisplay(teacherNewSubjects, i18n.language)}`,
+        `Subjects for teacher "${editingTeacher.name}" updated successfully: ${formatUserSubjectsDisplay(teacherNewSubjects, i18n.language)}`
+      ));
+      setEditingTeacher(null);
+      fetchAdminData();
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.error || tr('શિક્ષકના વિષયો બદલવામાં નિષ્ફળ', 'Failed to update teacher subjects'));
+    } finally {
+      setUpdatingTeacherSubject(false);
+    }
+  };
 
   useEffect(() => {
     fetchAdminData();
@@ -86,17 +139,24 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   const fetchAdminData = async () => {
+    setLoading(true);
+    setFetchError(null);
     try {
-      const [overRes, subRes, qRes] = await Promise.all([
+      const [overRes, subRes, qRes, hwRes] = await Promise.all([
         api.get('/admin/overview'),
         api.get('/student/subjects'),
-        api.get('/admin/questions')
+        api.get('/admin/questions'),
+        api.get('/homework/admin/analytics').catch(() => ({ data: { analytics: null } }))
       ]);
       setOverview(overRes.data);
-      setSubjects(subRes.data.subjects || []);
-      setQuestions(qRes.data.questions || []);
-    } catch (err) {
+      setSubjects(subRes.data?.subjects || []);
+      setQuestions(qRes.data?.questions || []);
+      if (hwRes?.data?.analytics) {
+        setHomeworkAnalytics(hwRes.data.analytics);
+      }
+    } catch (err: any) {
       console.error('Failed to load admin overview:', err);
+      setFetchError(err.response?.data?.error || tr('શિક્ષક ડેશબોર્ડ ડેટા લોડ કરવામાં નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો.', 'Failed to load teacher dashboard data. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -315,10 +375,34 @@ export const AdminDashboardPage: React.FC = () => {
     }
   };
 
-  if (loading || !overview) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (fetchError || !overview) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-3xl text-center max-w-md mx-auto my-12 space-y-4">
+        <div className="p-3 bg-red-500/10 text-red-400 rounded-2xl border border-red-500/20">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-white tracking-tight">
+            {tr('શિક્ષક ડેશબોર્ડ લોડ થઈ શક્યું નથી', 'Unable to load Teacher Dashboard')}
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            {fetchError || tr('ડેટા મેળવવામાં મુશ્કેલી પડી. કૃપા કરીને પુનઃપ્રયાસ બટન દબાવો.', 'There was an issue fetching dashboard data. Please try again.')}
+          </p>
+        </div>
+        <button
+          onClick={fetchAdminData}
+          className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-purple-600/30 transition-all flex items-center space-x-2 cursor-pointer"
+        >
+          <span>{tr('ફરી પ્રયાસ કરો', 'Try Again')}</span>
+        </button>
       </div>
     );
   }
@@ -365,76 +449,27 @@ export const AdminDashboardPage: React.FC = () => {
             <h1 className="text-2xl font-bold text-white flex items-center space-x-2">
               <span>{tr('શિક્ષક ડેશબોર્ડ', 'Teacher Dashboard')}</span>
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5">
+            {/* Teacher Welcome & Subject Banner */}
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <span className="text-xs sm:text-sm font-semibold text-slate-200">
+                {tr(`સ્વાગત છે, ${user?.name || 'શિક્ષક'}`, `Welcome, ${user?.name || 'Teacher'}`)}
+              </span>
+              {getUserAssignedSubjects(user).length > 0 && (
+                <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 font-bold text-xs shadow-sm">
+                  <BookOpen className="w-3 h-3 text-purple-400" />
+                  <span>
+                    {formatUserSubjectsDisplay(getUserAssignedSubjects(user), i18n.language)}
+                  </span>
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
               {tr(
                 'ધોરણ-વાર વિષય સંચાલન, પ્રશ્ન બેંક સંપાદક અને વિદ્યાર્થી પ્રદર્શન યાદી',
                 'Standard-wise subject management, question bank editor, and student performance roster'
               )}
             </p>
           </div>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 p-1.5 rounded-2xl overflow-x-auto">
-          <button
-            onClick={() => { setActiveTab('PERFORMANCE'); setSearchParams({ tab: 'students' }); setMsg(''); setErrorMsg(''); }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all whitespace-nowrap ${
-              activeTab === 'PERFORMANCE'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>{tr('વિદ્યાર્થી પ્રદર્શન', 'Student Performance')}</span>
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('SUBJECTS'); setSearchParams({ tab: 'subjects' }); setMsg(''); setErrorMsg(''); }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all whitespace-nowrap ${
-              activeTab === 'SUBJECTS'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>{tr('વિષયો અને સંપાદન', 'Subjects & Edit')}</span>
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('QUESTION_BANK'); setSearchParams({ tab: 'questions' }); setMsg(''); setErrorMsg(''); }}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all whitespace-nowrap ${
-              activeTab === 'QUESTION_BANK'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <FileQuestion className="w-4 h-4" />
-            <span>{tr('પ્રશ્ન બેંક અને ઉમેરો/સંપાદિત કરો', 'Question Bank & Add/Edit')}</span>
-          </button>
-
-          <button
-            onClick={() => navigate('/teacher/materials')}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all whitespace-nowrap text-indigo-300 bg-indigo-900/30 hover:bg-indigo-900/50 border border-indigo-500/40"
-          >
-            <Library className="w-4 h-4 text-indigo-400" />
-            <span>{tr('અભ્યાસ સાહિત્ય સંચાલન', 'Study Materials')}</span>
-          </button>
-
-          <button
-            onClick={() => navigate('/teacher/homework')}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all whitespace-nowrap text-purple-300 bg-purple-900/30 hover:bg-purple-900/50 border border-purple-500/40"
-          >
-            <FileText className="w-4 h-4 text-purple-400" />
-            <span>{tr('ગૃહકાર્ય સંચાલન અને ચકાસણી', 'Homework & Checking')}</span>
-          </button>
-
-          <button
-            onClick={() => navigate('/teacher/video-lectures')}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center space-x-2 transition-all whitespace-nowrap text-blue-300 bg-blue-900/30 hover:bg-blue-900/50 border border-blue-500/40"
-          >
-            <Video className="w-4 h-4 text-blue-400" />
-            <span>{tr('વિડિઓ લેક્ચર અપલોડ કરો', 'Upload Video Lecture')}</span>
-          </button>
         </div>
       </div>
 
@@ -610,7 +645,129 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* 2. SUBJECTS TAB (ADD, EDIT, DELETE SUBJECTS) */}
+      {/* 2. TEACHERS TAB (TEACHER ROSTER & SUBJECT MANAGEMENT) */}
+      {activeTab === 'TEACHERS' && (
+        <div className="space-y-6">
+          {/* Header & Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
+              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                {tr('કુલ શિક્ષકો', 'Total Teachers')}
+              </span>
+              <p className="text-3xl font-extrabold text-white mt-2">
+                {overview.counts?.teachersCount ?? overview.teachers?.length ?? 0}
+              </p>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
+              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                {tr('સક્રિય એકાઉન્ટ્સ', 'Active Accounts')}
+              </span>
+              <p className="text-3xl font-extrabold text-emerald-400 mt-2">
+                {overview.teachers?.length ?? 0}
+              </p>
+            </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-center">
+              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                {tr('ઉપલબ્ધ વિષયો', 'Available Subjects')}
+              </span>
+              <p className="text-3xl font-extrabold text-purple-400 mt-2">
+                {TEACHER_SUBJECTS.length}
+              </p>
+            </div>
+          </div>
+
+          {/* Teacher Roster Card */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center space-x-3">
+                <h3 className="font-bold text-base text-white flex items-center space-x-2">
+                  <ShieldCheck className="w-5 h-5 text-purple-400" />
+                  <span>{tr('શિક્ષક યાદી અને વિષય ફાળવણી', 'Teacher Roster & Subject Allocation')}</span>
+                </h3>
+                <span className="text-xs font-semibold px-3 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full">
+                  {`${overview.teachers?.length ?? 0} ${tr('નોંધાયેલ', 'Registered')}`}
+                </span>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left text-slate-300">
+                <thead className="bg-slate-800/80 text-slate-400 uppercase font-semibold border-b border-slate-700">
+                  <tr>
+                    <th className="px-4 py-3">{tr('શિક્ષકનું નામ', 'Teacher Name')}</th>
+                    <th className="px-4 py-3">{tr('ઈમેઇલ સરનામું', 'Email Address')}</th>
+                    <th className="px-4 py-3">{tr('સોંપાયેલ વિષયો', 'Assigned Subjects')}</th>
+                    <th className="px-4 py-3">{tr('ભૂમિકા', 'Role')}</th>
+                    <th className="px-4 py-3">{tr('સ્થિતિ', 'Status')}</th>
+                    <th className="px-4 py-3 text-right">{tr('ક્રિયા', 'Actions')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {(!overview.teachers || overview.teachers.length === 0) ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                        {tr('કોઈ શિક્ષકો નોંધાયેલા નથી', 'No teachers registered yet')}
+                      </td>
+                    </tr>
+                  ) : (
+                    overview.teachers.map((tc: any) => (
+                      <tr key={tc.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-white">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-7 h-7 rounded-full bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-300 font-bold text-xs">
+                              {tc.name?.charAt(0).toUpperCase() || 'T'}
+                            </div>
+                            <span>{tc.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-slate-400">{tc.email}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {getUserAssignedSubjects(tc).map((subName: string) => (
+                              <span key={subName} className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 font-bold text-[11px]">
+                                <BookOpen className="w-2.5 h-2.5 shrink-0" />
+                                <span>{getLocalizedSubjectName(subName, i18n.language)}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                            {tc.role === 'ADMIN' ? tr('એડમિન / શિક્ષક', 'Admin / Teacher') : tr('શિક્ષક', 'Teacher')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center space-x-1 text-emerald-400 font-semibold">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>{tr('સક્રિય', 'Active')}</span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingTeacher(tc);
+                              const assigned = getUserAssignedSubjects(tc);
+                              setTeacherNewSubjects(assigned.length > 0 ? assigned : [TEACHER_SUBJECTS[0].name]);
+                            }}
+                            className="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/40 text-purple-300 rounded-xl text-xs font-semibold inline-flex items-center space-x-1.5 transition-all shadow-sm"
+                            title={tr('વિષયો બદલો', 'Change Subjects')}
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>{tr('વિષયો બદલો', 'Change Subjects')}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. SUBJECTS TAB (ADD, EDIT, DELETE SUBJECTS) */}
       {activeTab === 'SUBJECTS' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Add Subject Form */}
@@ -984,6 +1141,220 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       )}
 
+      {/* 4. AI HOMEWORK CHECKING ANALYTICS VIEW */}
+      {activeTab === 'HOMEWORK_ANALYTICS' && (
+        <div className="space-y-8">
+          {/* Header Action Banner */}
+          <div className="bg-gradient-to-r from-purple-900/40 via-indigo-900/40 to-slate-900 border border-purple-500/30 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-[11px] font-bold uppercase tracking-wider mb-2 border border-purple-500/30">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{tr('AI આધારિત ગૃહકાર્ય ચકાસણી એનાલિટિક્સ', 'AI-Powered Homework Checking Intelligence', 'एआई-संचालित गृहकार्य विश्लेषण')}</span>
+              </div>
+              <h2 className="text-xl font-bold text-white">
+                {tr('શાળા-સ્તરીય ગૃહકાર્ય રિપોર્ટ અને ભૂલોનું વિશ્લેષણ', 'School-Wide Homework Report & Misconception Insights', 'स्कूल-स्तरीय गृहकार्य रिपोर्ट और त्रुटि विश्लेषण')}
+              </h2>
+              <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                {tr(
+                  'કૃત્રિમ બુદ્ધિમત્તા દ્વારા તપાસાયેલ હસ્તલિખિત ગૃહકાર્યની પરિણામ સ્થિતિ, શિક્ષક મંજૂરી અહેવાલ અને વિદ્યાર્થીઓની વારંવાર થતી ભૂલો.',
+                  'Real-time metrics on AI-checked handwritten submissions, teacher approval progress, subject averages, and top common mistakes detected across answers.',
+                  'एआई द्वारा जांची गई हस्तलिखित गृहकार्य स्थिति, शिक्षक स्वीकृति रिपोर्ट और सामान्य त्रुटियाँ।'
+                )}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/teacher/homework')}
+              className="px-5 py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-2 shrink-0 transition-all hover:scale-105"
+            >
+              <ClipboardCheck className="w-4 h-4" />
+              <span>{tr('શિક્ષક ચકાસણી પોર્ટલ ખોલો', 'Open Teacher Checking Portal', 'शिक्षक जांच पोर्टल खोलें')}</span>
+            </button>
+          </div>
+
+          {/* Metric KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 1. Total Submissions */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                  {tr('કુલ સબમિશન્સ', 'Total Submissions', 'कुल सबमिशन')}
+                </span>
+                <span className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  <FileText className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="text-3xl font-extrabold text-white mt-3">
+                {homeworkAnalytics?.totalSubmissions ?? overview?.counts?.attemptsCount ?? 0}
+              </p>
+              <div className="mt-2 flex items-center space-x-2 text-[11px] text-slate-400">
+                <span className="text-emerald-400 font-bold">
+                  {homeworkAnalytics?.approvedCount ?? 0} {tr('મંજૂર', 'Approved', 'स्वीकृत')}
+                </span>
+                <span>•</span>
+                <span>{homeworkAnalytics?.totalHomework ?? 0} {tr('સોંપેલ ગૃહકાર્ય', 'Assignments', 'असाइनमेंट')}</span>
+              </div>
+            </div>
+
+            {/* 2. Pending Teacher Approvals */}
+            <div className="bg-slate-900 border border-amber-500/30 rounded-3xl p-5 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-amber-300 font-semibold uppercase tracking-wider">
+                  {tr('શિક્ષક મંજૂરી બાકી', 'Pending Approvals', 'शिक्षक अनुमोदन लंबित')}
+                </span>
+                <span className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <Clock className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="text-3xl font-extrabold text-amber-400 mt-3">
+                {homeworkAnalytics?.pendingTeacherApprovals ?? 0}
+              </p>
+              <p className="mt-2 text-[11px] text-amber-300/80">
+                {tr('શિક્ષકની સમીક્ષા અને અંતિમ મંજૂરી જરૂરી છે', 'Requires teacher review and sign-off', 'शिक्षक समीक्षा और अंतिम अनुमोदन आवश्यक')}
+              </p>
+            </div>
+
+            {/* 3. School / Class Average */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                  {tr('શાળા સરેરાશ ગુણ', 'Average Score', 'औसत अंक')}
+                </span>
+                <span className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                  <Award className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="text-3xl font-extrabold text-purple-400 mt-3">
+                {homeworkAnalytics?.classAverage ?? 0}%
+              </p>
+              <p className="mt-2 text-[11px] text-slate-400">
+                {tr('મંજૂર સબમિશન્સ પર આધારિત', 'Based on approved graded homework', 'स्वीकृत गृहकार्य पर आधारित')}
+              </p>
+            </div>
+
+            {/* 4. Completion Rate */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                  {tr('સબમિશન પૂર્ણતા દર', 'Completion Rate', 'पूर्णता दर')}
+                </span>
+                <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <TrendingUp className="w-4 h-4" />
+                </span>
+              </div>
+              <p className="text-3xl font-extrabold text-emerald-400 mt-3">
+                {homeworkAnalytics?.completionRate ?? 0}%
+              </p>
+              <p className="mt-2 text-[11px] text-slate-400">
+                {tr('વિદ્યાર્થીઓ દ્વારા સમયસર સબમિશન', 'Active student submission ratio', 'छात्रों द्वारा समय पर सबमिशन दर')}
+              </p>
+            </div>
+          </div>
+
+          {/* Detailed Analytics Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Subject-Wise Performance */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <h3 className="font-bold text-sm text-white flex items-center space-x-2">
+                  <BookOpen className="w-4 h-4 text-purple-400" />
+                  <span>{tr('વિષયવાર સરેરાશ ગુણ', 'Subject-Wise Average Performance', 'विषयवार औसत प्रदर्शन')}</span>
+                </h3>
+                <span className="text-[11px] font-semibold text-slate-400">
+                  {homeworkAnalytics?.subjectAverages?.length || 0} {tr('વિષયો', 'Subjects', 'विषय')}
+                </span>
+              </div>
+
+              {(!homeworkAnalytics?.subjectAverages || homeworkAnalytics.subjectAverages.length === 0) ? (
+                <div className="py-12 text-center text-slate-500 text-xs">
+                  {tr('હજુ સુધી કોઈ વિષયવાર સબમિશન ડેટા ઉપલબ્ધ નથી', 'No subject submission data available yet', 'अभी तक कोई विषय सबमिशन डेटा उपलब्ध नहीं है')}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {homeworkAnalytics.subjectAverages.map((item: any, idx: number) => {
+                    const avg = item.average || 0;
+                    const barColor =
+                      avg >= 75 ? 'bg-emerald-500' : avg >= 50 ? 'bg-amber-500' : 'bg-rose-500';
+                    const textColor =
+                      avg >= 75 ? 'text-emerald-400' : avg >= 50 ? 'text-amber-400' : 'text-rose-400';
+
+                    return (
+                      <div key={idx} className="space-y-1.5 p-3 rounded-2xl bg-slate-950/40 border border-slate-800/80">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-200">{item.subject}</span>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-[11px] text-slate-400">
+                              {item.submissions} {tr('સબમિશન્સ', 'submissions', 'सबमिशन')}
+                            </span>
+                            <span className={`font-extrabold ${textColor}`}>{avg}%</span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                            style={{ width: `${Math.min(avg, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* AI-Identified Common Student Mistakes */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                <h3 className="font-bold text-sm text-white flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400" />
+                  <span>{tr('AI-શોધાયેલ સામાન્ય ભૂલો અને ખૂટતા મુદ્દાઓ', 'AI-Detected Common Misconceptions & Mistakes', 'एआई-पहचानी गई सामान्य गलतियाँ')}</span>
+                </h3>
+                <span className="px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-bold">
+                  {homeworkAnalytics?.topCommonMistakes?.length || 0} {tr('નોંધાયેલ', 'Detected', 'पहचाने गए')}
+                </span>
+              </div>
+
+              {(!homeworkAnalytics?.topCommonMistakes || homeworkAnalytics.topCommonMistakes.length === 0) ? (
+                <div className="py-12 text-center text-slate-500 text-xs">
+                  {tr(
+                    'હાલમાં વિદ્યાર્થીઓની જવાબોમાં કોઈ સામાન્ય ભૂલો નોંધાઈ નથી.',
+                    'No recurring student mistakes detected yet. Great job!',
+                    'फिलहाल छात्रों के उत्तरों में कोई सामान्य गलती नहीं पाई गई।'
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {homeworkAnalytics.topCommonMistakes.map((m: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="p-3.5 rounded-2xl bg-slate-950/40 border border-rose-500/20 flex items-start justify-between gap-3"
+                    >
+                      <div className="flex items-start space-x-2.5">
+                        <span className="w-5 h-5 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-[10px] font-extrabold shrink-0 mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-200">{m.mistake}</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {tr(
+                              'રૂબ્રિક તપાસ દરમિયાન આ મહત્વપૂર્ણ મુદ્દો જવાબમાંથી ગેરહાજર હતો.',
+                              'Frequently missed in rubric criteria across submissions.',
+                              'रूब्रिक मानदंड के दौरान यह महत्वपूर्ण बिंदु उत्तर से गायब था।'
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-xl bg-slate-800 text-slate-300 text-[11px] font-bold shrink-0 border border-slate-700">
+                        {m.count} {tr('વિદ્યાર્થીઓ', 'cases', 'बार')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* EDIT SUBJECT MODAL */}
       {editingSubject && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -1175,6 +1546,111 @@ export const AdminDashboardPage: React.FC = () => {
                 >
                   <Save className="w-4 h-4" />
                   <span>{tr('પ્રશ્ન અપડેટ કરો', 'Update Question')}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Teacher Subject Modal */}
+      {editingTeacher && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-bold text-white text-base flex items-center space-x-2">
+                <BookOpen className="w-5 h-5 text-purple-400" />
+                <span>{tr('શિક્ષકના વિષયો બદલો', 'Change Teacher Subjects')}</span>
+              </h3>
+              <button
+                onClick={() => setEditingTeacher(null)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateTeacherSubject} className="space-y-4">
+              <div className="p-3.5 bg-slate-950/60 rounded-xl border border-slate-800 space-y-1.5 text-xs">
+                <div className="text-slate-400">
+                  <span className="font-medium">{tr('શિક્ષક:', 'Teacher:')}</span>{' '}
+                  <strong className="text-white">{editingTeacher.name}</strong>
+                </div>
+                <div className="text-slate-400">
+                  <span className="font-medium">{tr('ઈમેલ:', 'Email:')}</span>{' '}
+                  <span className="text-slate-300">{editingTeacher.email}</span>
+                </div>
+                <div className="text-slate-400">
+                  <span className="font-medium">{tr('હાલના વિષયો:', 'Current Subjects:')}</span>{' '}
+                  <span className="text-purple-300 font-bold">
+                    {formatUserSubjectsDisplay(getUserAssignedSubjects(editingTeacher), i18n.language)}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold text-slate-300 uppercase">
+                    {tr('સોંપાયેલ વિષયો પસંદ કરો', 'Select Assigned Subjects')}
+                  </label>
+                  <span className="text-[10px] text-purple-400 font-bold bg-purple-500/10 border border-purple-500/30 px-2 py-0.5 rounded-full">
+                    {teacherNewSubjects.length} {tr('પસંદ કરેલ', 'Selected')}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                  {TEACHER_SUBJECTS.map((subj) => {
+                    const isChecked = teacherNewSubjects.includes(subj.name);
+                    return (
+                      <label
+                        key={subj.name}
+                        className={`flex items-center space-x-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                          isChecked
+                            ? 'bg-purple-950/40 border-purple-500 text-purple-100 shadow-sm'
+                            : 'bg-slate-800/60 border-slate-700/70 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setTeacherNewSubjects(prev =>
+                              prev.includes(subj.name) ? prev.filter(x => x !== subj.name) : [...prev, subj.name]
+                            );
+                          }}
+                          className="w-4 h-4 rounded border-slate-700 text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-600"
+                        />
+                        <span className="text-xs font-semibold">
+                          {getLocalizedSubjectName(subj.name, i18n.language)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-2">
+                  {tr('શિક્ષક ઓછામાં ઓછો એક અથવા વધુ વિષયો ભણાવી શકે છે.', 'Teacher must have at least one subject assigned.')}
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingTeacher(null)}
+                  disabled={updatingTeacherSubject}
+                  className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-colors"
+                >
+                  {tr('રદ કરો', 'Cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingTeacherSubject || teacherNewSubjects.length === 0}
+                  className="w-1/2 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl flex items-center justify-center space-x-2 transition-all shadow-lg shadow-purple-600/30"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>
+                    {updatingTeacherSubject
+                      ? tr('અપડેટ થઈ રહ્યું છે...', 'Updating...')
+                      : tr('વિષયો સાચવો', 'Save Subjects')}
+                  </span>
                 </button>
               </div>
             </form>

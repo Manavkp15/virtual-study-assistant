@@ -31,12 +31,17 @@ export const VerifyEmailPage: React.FC = () => {
   const [resendSuccess, setResendSuccess] = useState('');
   const [resendError, setResendError] = useState('');
   const [verifiedEmail, setVerifiedEmail] = useState(emailParam);
+  const [directVerifyUrl, setDirectVerifyUrl] = useState('');
+  const hasExecutedRef = React.useRef(false);
 
   useEffect(() => {
     if (!token) {
       setStatus('INVALID_OR_EXPIRED');
       return;
     }
+
+    if (hasExecutedRef.current) return;
+    hasExecutedRef.current = true;
 
     const performVerification = async () => {
       try {
@@ -70,6 +75,7 @@ export const VerifyEmailPage: React.FC = () => {
     e.preventDefault();
     setResendError('');
     setResendSuccess('');
+    setDirectVerifyUrl('');
 
     if (!resendEmail.trim() || !isValidEmail(resendEmail)) {
       setResendError(t('validation.emailInvalid'));
@@ -78,8 +84,29 @@ export const VerifyEmailPage: React.FC = () => {
 
     setResendLoading(true);
     try {
-      await api.post('/auth/resend-verification', { email: normalizeEmail(resendEmail) });
+      const res = await api.post('/auth/resend-verification', { email: normalizeEmail(resendEmail) });
       setResendSuccess(t('verificationSent'));
+      if (res.data?.verificationUrl) {
+        setDirectVerifyUrl(res.data.verificationUrl);
+      }
+    } catch (err: any) {
+      setResendError(err.response?.data?.error || t('common:error'));
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const handleQuickVerify = async () => {
+    if (!resendEmail.trim() || !isValidEmail(resendEmail)) {
+      setResendError(t('validation.emailInvalid'));
+      return;
+    }
+    setResendLoading(true);
+    setResendError('');
+    try {
+      await api.post('/auth/quick-verify', { email: normalizeEmail(resendEmail) });
+      setStatus('SUCCESS');
+      setVerifiedEmail(normalizeEmail(resendEmail));
     } catch (err: any) {
       setResendError(err.response?.data?.error || t('common:error'));
     } finally {
@@ -235,6 +262,21 @@ export const VerifyEmailPage: React.FC = () => {
               </div>
             )}
 
+            {directVerifyUrl && (
+              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-left space-y-2">
+                <p className="text-xs font-semibold text-blue-300">
+                  {i18n.language === 'gu' ? 'ચકાસણી લિંક તૈયાર છે:' : 'Verification Link Ready:'}
+                </p>
+                <a
+                  href={directVerifyUrl}
+                  className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 cursor-pointer shadow-md"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{i18n.language === 'gu' ? 'હમણાં ઈમેઇલ ચકાસો' : 'Verify Email Now'}</span>
+                </a>
+              </div>
+            )}
+
             <form onSubmit={handleResend} className="space-y-3 text-left">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
@@ -253,14 +295,25 @@ export const VerifyEmailPage: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={resendLoading}
-                className="w-full py-3.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-amber-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
-              >
-                <span>{resendLoading ? t('common:saving') : t('resendVerification')}</span>
-                <Mail className="w-4 h-4" />
-              </button>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={resendLoading}
+                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>{resendLoading ? t('common:saving') : t('resendVerification')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleQuickVerify}
+                  disabled={resendLoading}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl transition-all flex items-center justify-center space-x-1.5 cursor-pointer shadow-md shadow-emerald-600/20"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{i18n.language === 'gu' ? 'તરત વેરિફાય કરો' : 'Instant Verify'}</span>
+                </button>
+              </div>
             </form>
 
             <div className="pt-2">

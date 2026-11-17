@@ -4,6 +4,7 @@ import { MistakeEntry } from '../types';
 import { useTranslation } from 'react-i18next';
 import { tr, trSubject, trItem } from '../utils/tr';
 import { AlertTriangle, CheckCircle2, Search } from 'lucide-react';
+import { StepByStepSolutionCard } from '../components/StepByStepSolutionCard';
 
 export const MistakeBookPage: React.FC = () => {
   const { t, i18n } = useTranslation(['mistakes', 'common']);
@@ -166,13 +167,20 @@ export const MistakeBookPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Explanation & Action Recommendation */}
-              {(m.explanationGu || m.explanation) && (
+              {/* Step-by-Step Solution & Concept Reasoning */}
+              {m.stepByStepSolution ? (
+                <StepByStepSolutionCard
+                  solution={m.stepByStepSolution}
+                  questionText={m.questionText}
+                  explanationFallback={m.explanation}
+                  explanationFallbackGu={m.explanationGu}
+                />
+              ) : (m.explanationGu || m.explanation) ? (
                 <div className="text-xs text-slate-300 bg-slate-800/20 p-3 rounded-xl border border-slate-800">
                   <strong className="text-blue-400">{t('solutionExplanation')}: </strong>
                   {trItem(m.explanationGu, m.explanation)}
                 </div>
-              )}
+              ) : null}
 
               <p className="text-xs text-amber-400 font-medium italic">
                 "{trItem(m.recommendationGu, m.recommendation)}"
